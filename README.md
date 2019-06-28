@@ -4,14 +4,22 @@ Rēto is an upvote and downvote system akin to Reddit, for Discord! Any user can
 ## Getting Started
 You can add Rēto to your server [by clicking on this link!](https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot)
 Afterwards, send the command **?setup** to get the bot ready for action. This will:
+
 - create the role "Curators"
 - add you to said role
 - create the channel #best-of (you can move this to another category later)
 - create a emoji exclusive to the role "Curators": the Star (:10:)
 - create emojis available for everyone (Heart :plus: and Crush :minus:)
-Make sure the bot has the appropiate permissions and that there's enough space for three new custom emoji in your server!
-After you're done, you can react to any message with any of the three supported emojis and Rēto will respond accordingly and update the karma of the commenter. You can check your karma with **?karma**, or check other people's karma with **?karma @{USER}**.
+
+Make sure the bot has the appropiate permissions and that there's enough space for three new custom emoji in your server! After you're done, you can react to any message with any of the three supported emojis and Rēto will respond accordingly and update the karma of the commenter. You can check your karma with **?karma**, or check other people's karma with **?karma @{USER}**.
 
 
 ## Self-hosting Rēto
-Soon.
+So, you've decided to self-host Rēto. Whether that's because you want to put Karma to good use by implementing other features to the bot or adapting it to your server's necessities, good on you! Here's what you'll need to set up Rēto on a machine of your very own.
+
+### Dependencies
+- [discord.py](https://github.com/Rapptz/discord.py): py -3 -m pip install -U discord.py
+- [pyfiglet](https://github.com/pwaller/pyfiglet): pip install pyfiglet
+- [MySQL-Connector-Python](https://pypi.org/project/mysql-connector-python/): pip install MySQL-Connector-Python
+
+The next thing you'll need is a *MySQL database*. You can get one from remotemysql.com, but using one anywhere else (or self-hosted with Xampp) will work as intended. Import the score.py found in the root into PHPMyAdmin
