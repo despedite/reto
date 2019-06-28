@@ -22,4 +22,6 @@ So, you've decided to self-host Rēto. Whether that's because you want to put Ka
 - [pyfiglet](https://github.com/pwaller/pyfiglet): pip install pyfiglet
 - [MySQL-Connector-Python](https://pypi.org/project/mysql-connector-python/): pip install MySQL-Connector-Python
 
-The next thing you'll need is a *MySQL database*. You can get one from remotemysql.com, but using one anywhere else (or self-hosted with Xampp) will work as intended. Import the score.py found in the root into PHPMyAdmin
+The next thing you'll need is a *MySQL database*. You can get one from remotemysql.com, but using one anywhere else (or self-hosted with Xampp) will work as intended. Import the database.sql found in the root into PHPMyAdmin and you'll be set! Make sure to update the database's hostname, database name, username and password on line 14 on reto.py.
+
+Finally, go to https://discordapp.com/developers/applications/me and create an application for your bot. Create a bot account, copy the token and modify the bot token on line 318. Run reto.py and invite the bot using OAuth2!
