@@ -33,7 +33,7 @@ async def on_ready():
 	print ("Invite link: https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot")
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
-	game = discord.Game("?setup to get started! | 1.0.0")
+	game = discord.Game("?setup to get started! | 1.0.1")
 	await bot.change_presence(activity=game)
 
 # -------------------------
