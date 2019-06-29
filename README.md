@@ -1,7 +1,7 @@
 # Rēto
 Rēto is an upvote and downvote system akin to Reddit, for Discord! Any user can heart a message they particularly like (or crush a message they don't quite enjoy) by reacting to said message with a :plus: or :minus: to add or subtract to an user's Karma score. Not only that, but users with the "Curator" role have access to the :10: emoji, which will grant the message-poster 10 points towards their Karma, and send the message to a "#best-of" channel for all the world to see. This bot is perfect for personal and community channels that want to have an alternative scoring system to that of levelling up, and want to showcase how fun and interesting their community is!
 
-![alt text](https://i.ibb.co/3s7VDKC/2019-06-2821-12-43-Trim.gif)
+![alt text](2019-06-2821-12-43_Trim.gif)
 
 ## Getting Started
 You can add Rēto to your server [by clicking on this link!](https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot)
