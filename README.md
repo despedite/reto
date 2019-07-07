@@ -1,4 +1,5 @@
 ![alt text](RetoCoverart.png)
+### IMPORTANT: The 24/7 version has a known bug that will stop working after a few hours. This is being investigated and we'll update the repo when it's all patched up!
 # Rēto
 Rēto is an upvote and downvote system akin to Reddit, for Discord! Any user can heart a message they particularly like (or crush a message they don't quite enjoy) by reacting to said message with a :plus: or :minus: to add or subtract to an user's Karma score. Not only that, but users with the "Curator" role have access to the :10: emoji, which will grant the message-poster 10 points towards their Karma, and send the message to a "#best-of" channel for all the world to see. This bot is perfect for personal and community channels that want to have an alternative scoring system to that of levelling up, and want to showcase how fun and interesting their community is!
 https://github.com/despediteerik/reto/edit/master/README.md
