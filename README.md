@@ -1,5 +1,5 @@
 ![alt text](RetoCoverart.png)
-### IMPORTANT: The 24/7 version has a known bug that will stop working after a few hours. This is being investigated and we'll update the repo when it's all patched up!
+
 # Rēto
 Rēto is an upvote and downvote system akin to Reddit, for Discord! Any user can heart a message they particularly like (or crush a message they don't quite enjoy) by reacting to said message with a :plus: or :minus: to add or subtract to an user's Karma score. Not only that, but users with the "Curator" role have access to the :10: emoji, which will grant the message-poster 10 points towards their Karma, and send the message to a "#best-of" channel for all the world to see. This bot is perfect for personal and community channels that want to have an alternative scoring system to that of levelling up, and want to showcase how fun and interesting their community is!
 https://github.com/despediteerik/reto/edit/master/README.md
@@ -24,10 +24,10 @@ So, you've decided to self-host Rēto. Whether that's because you want to put Ka
 ### Dependencies
 - [discord.py](https://github.com/Rapptz/discord.py): py -3 -m pip install -U discord.py
 - [pyfiglet](https://github.com/pwaller/pyfiglet): pip install pyfiglet
-- [MySQL-Connector-Python](https://pypi.org/project/mysql-connector-python/): pip install MySQL-Connector-Python
+- [TinyDB](https://github.com/msiemens/tinydb): pip install tinydb
 
-The next thing you'll need is a *MySQL database*. You can get one from remotemysql.com, but using one anywhere else (or self-hosted with Xampp) will work as intended. Import the database.sql found in the root into PHPMyAdmin and you'll be set! Make sure to update the database's hostname, database name, username and password on line 14 on reto.py.
+~~The next thing you'll need is a *MySQL database*.~~ Rēto doesn't use MySQL anymore, and the JSON database is created on first install. Hooray!
 
-Finally, go to https://discordapp.com/developers/applications/me and create an application for your bot. Create a bot account, copy the token and modify the bot token on line 318. Run reto.py and invite the bot using OAuth2! Rēto will need the following permissions: &permissions=1342449744.
+Go to https://discordapp.com/developers/applications/me and create an application for your bot. Create a bot account, copy the token and modify the bot token on the last line. Run reto.py and invite the bot using OAuth2! Rēto will need the following permissions: &permissions=1342449744.
 
 Rēto was originally made for the [Discord Hack Week 2019](https://discord.gg/hackweek).
