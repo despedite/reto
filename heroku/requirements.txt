@@ -1,4 +1,3 @@
 git+https://github.com/Rapptz/discord.py
 git+https://github.com/pwaller/pyfiglet
---allow-external MySQL-Connector-Python
-MySQL-Connector-Python==8.0.16
+git+https://github.com/msiemens/tinydb

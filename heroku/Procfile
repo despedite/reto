@@ -1,1 +1,1 @@
-worker: python jibo.py
+worker: python reto.py
