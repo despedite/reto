@@ -15,7 +15,10 @@ try:
 	if connection.is_connected():
 		db_Info = connection.get_server_info()
 		print("Connected to MySQL database!")
-		cursor = connection.cursor()
+		cursor = connection.cursor
+		cursor.execute('SET GLOBAL connect_timeout = 604800')
+		cursor.execute('SET GLOBAL wait_timeout = 604800')
+		cursor.execute('SET GLOBAL interactive_timeout = 604800')
 		cursor.execute("select database();")
 		record = cursor.fetchone()
 except Error as e :
@@ -33,7 +36,7 @@ async def on_ready():
 	print ("Invite link: https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot")
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
-	game = discord.Game("?setup to get started! | 1.0.1")
+	game = discord.Game("?setup to get started! | 1.0.3")
 	await bot.change_presence(activity=game)
 
 # -------------------------
