@@ -2,27 +2,14 @@ import discord
 from discord.ext import commands
 import asyncio
 import pyfiglet
-import mysql.connector
-from mysql.connector import Error
+from tinydb import TinyDB, Query, where
+from tinydb.operations import add, subtract
+db = TinyDB('db.json')
 
 prefix = "?"
 bot = commands.Bot(command_prefix=prefix)
 client = discord.Client()
 ascii_banner = pyfiglet.figlet_format("Rēto.py")
-
-try:
-	connection = mysql.connector.connect(host='DATABASE_HOST_HERE',database='DATABASE_NAME_HERE',user='DATABASE_USER_HERE',password='DATABASE_PASS_HERE')
-	if connection.is_connected():
-		db_Info = connection.get_server_info()
-		print("Connected to MySQL database!")
-		cursor = connection.cursor
-		cursor.execute('SET GLOBAL connect_timeout = 604800')
-		cursor.execute('SET GLOBAL wait_timeout = 604800')
-		cursor.execute('SET GLOBAL interactive_timeout = 604800')
-		cursor.execute("select database();")
-		record = cursor.fetchone()
-except Error as e :
-	print ("Error while connecting to MySQL", e)
 
 # -------------------------
 #	  ON READY COMMAND
@@ -36,7 +23,7 @@ async def on_ready():
 	print ("Invite link: https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot")
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
-	game = discord.Game("?setup to get started! | 1.0.3")
+	game = discord.Game("?setup to start! | 1.1.0")
 	await bot.change_presence(activity=game)
 
 # -------------------------
@@ -150,26 +137,18 @@ async def on_reaction_add(reaction, user):
 		emberino.set_author(name=autor, icon_url=foto)
 		if(len(reaction.message.attachments) > 0):
 			emberino.set_image(url=imagen)
-		#await self.bot.say(embed=embed)
 		channel = discord.utils.get(reaction.message.guild.channels, name="best-of")
 
-		#Añadir usuario a la tabla?
-		cursor = connection.cursor(buffered=True)
-		cursor.execute("SELECT * FROM score WHERE username='{}'".format(reaction.message.author))
-		data="error" #initially just assign the value
-		for i in cursor:
-			data=i #if cursor has no data then loop will not run and value of data will be 'error'
-		if data=="error":
+		#Añadir usuario a la tabla
+		value = str(reaction.message.author.id)
+		exists = db.count(Query().username == value)
+		if exists == 0:
 			print("El usuario no existe en la base de datos. Añadiendolo...")
-			insert_stmt = ("INSERT INTO score (username,points,id) VALUES ('{}', '{}', NULL)".format(reaction.message.author, 10))
-			cursor.execute(insert_stmt)
-			connection.commit()
-			print ("Record inserted successfully into python_users table")
+			db.insert({'username': value, 'points': 10})
+			print ("+10 puntos añadidos!")
 		else:
 			print ("El usuario ya existe en la base de datos. Añadiendole 10 puntos...")
-			update_stmt = ("UPDATE score SET points=points+10 WHERE username='{}'".format(reaction.message.author))
-			cursor.execute(update_stmt)
-			connection.commit()
+			db.update(add('points',10), where('username') == value)
 			print ("Puntos actualizados!")
 		
 		# Si el canal "best-of" no existe, el bot lo crea y postea el mensaje ahi.
@@ -186,17 +165,14 @@ async def on_reaction_add(reaction, user):
 		#Manda el puto mensaje
 
 		channel = reaction.message.channel
-		valor = ("SELECT points FROM score WHERE username='{}'".format(reaction.message.author))
-		cursor.execute(valor)
-		valor2 = cursor.fetchone()
+		result = db.get(Query()['username'] == value)
 		
-		
-		send = await channel.send("Congrats, **{}**! Your post will be forever immortalized in the server's #best-of. You now have {} points. (+10)".format(reaction.message.author.name,valor2[0]))
+		send = await channel.send("Congrats, **{}**! Your post will be forever immortalized in the server's #best-of. You now have {} points. (+10)".format(reaction.message.author.name,result.get('points')))
 		
 		#Eliminar el mensaje
 		await asyncio.sleep(3) 
 		await send.delete()
-	
+
 	# -------------------------
 	#	  REACTION = :PLUS:
 	# -------------------------	
@@ -204,42 +180,31 @@ async def on_reaction_add(reaction, user):
 	if reaction.emoji.name == 'plus':
 		channel = reaction.message.channel
 
-		#Añadir usuario a la tabla?
-		cursor = connection.cursor(buffered=True)
-		cursor.execute("SELECT * FROM score WHERE username='{}'".format(reaction.message.author))
-		data="error" #initially just assign the value
-		for i in cursor:
-			data=i #if cursor has no data then loop will not run and value of data will be 'error'
-		if data=="error":
+		#Añadir usuario a la tabla
+		value = str(reaction.message.author.id)
+		exists = db.count(Query().username == value)
+		if exists == 0:
 			print("El usuario no existe en la base de datos. Añadiendolo...")
-			insert_stmt = ("INSERT INTO score (username,points,id) VALUES ('{}', '{}', NULL)".format(reaction.message.author, 1))
-			cursor.execute(insert_stmt)
-			connection.commit()
-			print ("Record inserted successfully into python_users table")
-			valor = ("SELECT points FROM score WHERE username='{}'".format(reaction.message.author))
-			cursor.execute(valor)
-			valor2 = cursor.fetchone()
-			
+			db.insert({'username': value, 'points': 1})
+			print ("+1 punto añadido!")
+
 			#Manda el puto mensaje
-			
-			heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,valor2[0]))
+			result = db.get(Query()['username'] == value)
+			heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
 			await heart.delete()
+
 		else:
 			print ("El usuario ya existe en la base de datos. Añadiendole 1 punto...")
-			update_stmt = ("UPDATE score SET points=points+1 WHERE username='{}'".format(reaction.message.author))
-			cursor.execute(update_stmt)
-			connection.commit()
-			print ("Puntos actualizados!")
-			valor = ("SELECT points FROM score WHERE username='{}'".format(reaction.message.author))
-			cursor.execute(valor)
-			valor2 = cursor.fetchone()
-			
+			db.update(add('points',1), where('username') == value)
+			print ("+1 punto añadido!")
+
 			#Manda el puto mensaje
-			
-			heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,valor2[0]))
+			result = db.get(Query()['username'] == value)
+			heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
 			await heart.delete()
+
 	# -------------------------
 	#	  REACTION = :MINUS:
 	# -------------------------	
@@ -247,40 +212,28 @@ async def on_reaction_add(reaction, user):
 	if reaction.emoji.name == 'minus':
 		channel = reaction.message.channel
 
-		#Añadir usuario a la tabla?
-		cursor = connection.cursor(buffered=True)
-		cursor.execute("SELECT * FROM score WHERE username='{}'".format(reaction.message.author))
-		data="error" #initially just assign the value
-		for i in cursor:
-			data=i #if cursor has no data then loop will not run and value of data will be 'error'
-		if data=="error":
+		#Añadir usuario a la tabla
+		value = str(reaction.message.author.id)
+		exists = db.count(Query().username == value)
+		if exists == 0:
 			print("El usuario no existe en la base de datos. Añadiendolo...")
-			insert_stmt = ("INSERT INTO score (username,points,id) VALUES ('{}', '{}', NULL)".format(reaction.message.author, 0))
-			cursor.execute(insert_stmt)
-			connection.commit()
-			print ("Record inserted successfully into python_users table")
-			valor = ("SELECT points FROM score WHERE username='{}'".format(reaction.message.author))
-			cursor.execute(valor)
-			valor2 = cursor.fetchone()
-			
+			db.insert({'username': value, 'points': -1})
+			print ("-1 punto restado!")
+
 			#Manda el puto mensaje
-			
-			crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,valor2[0]))
+			result = db.get(Query()['username'] == value)
+			crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
 			await crush.delete()
+
 		else:
-			print ("El usuario ya existe en la base de datos. Restandolé 1 punto...")
-			update_stmt = ("UPDATE score SET points=points-1 WHERE username='{}'".format(reaction.message.author))
-			cursor.execute(update_stmt)
-			connection.commit()
-			print ("Puntos actualizados!")
-			valor = ("SELECT points FROM score WHERE username='{}'".format(reaction.message.author))
-			cursor.execute(valor)
-			valor2 = cursor.fetchone()
-			
+			print ("El usuario ya existe en la base de datos. Restandolé -1 punto...")
+			db.update(subtract('points',1), where('username') == value)
+			print ("-1 punto restado!")
+
 			#Manda el puto mensaje
-			
-			crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,valor2[0]))
+			result = db.get(Query()['username'] == value)
+			crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
 			await crush.delete()
 
@@ -291,23 +244,26 @@ async def on_reaction_add(reaction, user):
 @bot.command(aliases=['points', 'point'])
 async def karma(ctx, *args):
 	if not args:
-		valor = ("SELECT points FROM score WHERE username='{}'".format(ctx.message.author))
-		cursor.execute(valor)
-		valor2 = cursor.fetchone()
-		
-		send = await ctx.send("The user **{}** has a total of **{}** points.".format(ctx.message.author.name,valor2[0]))
-	elif not ctx.message.mentions:
-		await ctx.send("Invalid command! Do **?karma** to find out about your score, or @mention another user to find their score.")
-	else:
-		valor = ("SELECT points FROM score WHERE username='{}'".format(ctx.message.mentions[0]))
-		cursor.execute(valor)
-		valor2 = cursor.fetchone()
-			
-		send = await ctx.send("The user **{}** has a total of **{}** points.".format(ctx.message.mentions[0].name,valor2[0]))
+		valor = str(ctx.message.author)
+		searchvalor = str(ctx.message.author.id)
 
-# -------------------------
-#	   MISC. COMMANDS
-# -------------------------
+		result = db.get(Query()['username'] == searchvalor)
+		
+		send = await ctx.send("The user **{}** has a total of **{}** points.".format(ctx.message.author.name,result.get('points')))
+	elif not ctx.message.mentions:
+		await ctx.send("Invalid command! Do **?karma** to find out about your score, or @mention another user to get their score.")
+	else:
+		try:
+			valor = str(ctx.message.mentions[0].name)
+			searchvalor = str(ctx.message.mentions[0].id)
+			
+			resultmention = db.get(Query()['username'] == searchvalor)
+			resultprint = resultmention.get('points')
+				
+			send = await ctx.send("The user **{}** has a total of **{}** points.".format(valor,resultprint))
+		except:
+			valor = str(ctx.message.mentions[0].name)
+			send = await ctx.send("The user **{}** doesn't appear to have any points. Odd.".format(valor))
 
 @bot.command()
 async def ping(ctx):
@@ -318,4 +274,4 @@ async def ping(ctx):
 async def invite(ctx):
 	await ctx.send("Here's an invitation link for the bot: https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot")
 
-bot.run('TOKEN_HERE')
+bot.run('INSERT-BOT-TOKEN-HERE')
