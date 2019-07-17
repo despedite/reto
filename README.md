@@ -7,7 +7,7 @@ Rēto is an upvote and downvote system akin to Reddit, for Discord! Any user can
 
 ## Getting Started
 You can add Rēto to your server [by clicking on this link!](https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot)
-Afterwards, send the command **?setup** to get the bot ready for action. This will:
+Afterwards, send the command **?setup** to get the bot ready to go. You'll need "Manage Messages" permissions to execute this command. This will:
 
 - create the role "Curators"
 - add you to said role
@@ -15,7 +15,7 @@ Afterwards, send the command **?setup** to get the bot ready for action. This wi
 - create a emoji exclusive to the role "Curators": the Star (:10:)
 - create emojis available for everyone (Heart :plus: and Crush :minus:)
 
-Make sure the bot has the appropiate permissions and that there's enough space for three new custom emoji in your server! After you're done, you can react to any message with any of the three supported emojis and Rēto will respond accordingly and update the karma of the commenter. You can check your karma with **?karma**, or check other people's karma with **?karma @{USER}**.
+Make sure the bot has the appropiate permissions and that there's enough space for three new custom emoji in your server! After you're done, you can react to any message with any of the three supported emojis and Rēto will respond accordingly and update the karma of the commenter. You can check your karma with **?karma**, or check other people's karma with **?karma @{USER}**, edit the default emojis with **?emoji edit** *emoji name* and read all the other commands with **?help**.
 
 
 ## Self-hosting Rēto
