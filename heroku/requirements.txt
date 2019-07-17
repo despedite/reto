@@ -1,3 +1,4 @@
 git+https://github.com/Rapptz/discord.py
 git+https://github.com/pwaller/pyfiglet
 git+https://github.com/msiemens/tinydb
+git+https://github.com/Tinche/aiofiles
