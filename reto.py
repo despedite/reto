@@ -4,12 +4,23 @@ import asyncio
 import pyfiglet
 from tinydb import TinyDB, Query, where
 from tinydb.operations import add, subtract
+import aiohttp        
+import aiofiles
+import os.path
 db = TinyDB('db.json')
+
+# ↓↓↓ MODIFY THIS FIRST! ↓↓↓
+
+bottoken = "BOT_TOKEN_HERE" # This is needed to host the bot. Never share this token!
+botname = "Rēto" # How the code will refer to your bot.
+devname = "@Erik#0944" # OPTIONAL: Contact information for the bot's creator, mentioned at the end of ?setup. If left blank, no dev contact info will be shown.
+
+# ↑↑↑ MODIFY THIS FIRST! ↑↑↑
 
 prefix = "?"
 bot = commands.Bot(command_prefix=prefix)
 client = discord.Client()
-ascii_banner = pyfiglet.figlet_format("Rēto.py")
+ascii_banner = pyfiglet.figlet_format(botname + ".py")
 
 # -------------------------
 #	  ON READY COMMAND
@@ -18,24 +29,29 @@ ascii_banner = pyfiglet.figlet_format("Rēto.py")
 @bot.event
 async def on_ready():
 	print (ascii_banner)
-	print ("Rēto is ONLINE!")
-	print ("Running with the name " + str(bot.user) )
-	print ("Invite link: https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot")
+	print (botname + " is ONLINE!")
+	if len(bot.guilds) == 1:
+		print ("Running with the name " + str(bot.user) + " on " + str(len(bot.guilds)) + " server")
+	else:
+		print ("Running with the name " + str(bot.user) + " on " + str(len(bot.guilds)) + " servers")
+	print ("Invite link: https://discordapp.com/api/oauth2/authorize?client_id=" + str(bot.user.id) + "&permissions=1342449744&scope=bot")
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
-	game = discord.Game("?setup to start! | 1.1.0")
+	game = discord.Game("?setup to start! | 1.1.1")
 	await bot.change_presence(activity=game)
 
 # -------------------------
 #			SETUP
 # -------------------------
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, description="Sets up the bot, creating the necessary roles, channels and emojis for it to function. REQUIRED ROLES: Manage messages")
+@commands.has_permissions(manage_guild=True)
 async def setup(ctx):
+	"""Sets up the bot automagically. REQUIRED ROLES: Manage messages"""
 	await ctx.send("Oh, hi there! Let's get the bot set up.")
 	await ctx.send("Before starting, check that there is space to create three new emojis and that the bot has sufficient permissions. If the setup process doesn't finish properly, correct these issues and input ?setup again.")
 	
-	# Si el rol "Curator" no existe, el bot lo crea.
+	# If the role "Curator" doesn't exist, the bot creates it.
 	try:
 		rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
 		if rolesearch == None:
@@ -46,7 +62,7 @@ async def setup(ctx):
 	except:
 		await ctx.send(":x: An error has occurred while creating the role **Curator**. Check the bot's permissions and try again!")
 	
-	# Si el canal "best-of" no existe, el bot lo crea.
+	# If the channel "#best-of" doesn't exist, the bot creates it.
 	try:
 		channelsearch = discord.utils.get(ctx.guild.channels, name="best-of")
 		if channelsearch == None:
@@ -57,7 +73,7 @@ async def setup(ctx):
 	except:
 		await ctx.send(":x: An error has occurred while creating the channel **#best-of**. Check the bot's permissions and try again!")
 
-	# Si el usuario no tiene asignado el rol "Curator", el bot se lo asigna.
+	# If the user who executed the command doesn't have assigned the role "Curator", the bot assigns it.
 	try:
 		if discord.utils.get(ctx.message.author.roles, name="Curator") is None:
 			role = discord.utils.get(ctx.guild.roles, name="Curator")
@@ -68,7 +84,7 @@ async def setup(ctx):
 	except:
 		await ctx.send(":x: An error has occurred while assigning you the role **Curator**. Check the bot's permissions and try again!")
 
-	# Si el emoji "10" no existe, el bot lo crea.
+	# If the emoji "10" doesn't exist, the bot creates it.
 	try:
 		rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
 		emojisearch = discord.utils.get(ctx.guild.emojis, name="10")
@@ -80,10 +96,8 @@ async def setup(ctx):
 			await ctx.send(":four: The emoji **:10:** already exists, no further action has been taken.")
 	except:
 		await ctx.send(":x: An error has occurred while creating the role-exclusive emoji **:10:**. Check the bot's permissions and that there's space for three more emojis and try again!")
-		#PLEASE REMOVE AFTER FIX AND THANKS
-		#await ctx.send("If this is your first install and permissions are correct, this is a common issue. Just re-run ?setup while I fix the issue.")
 
-	# Si el emoji "plus" no existe, el bot lo crea.
+	# If the emoji "plus" doesn't exist, the bot creates it.
 	try:
 		plussearch = discord.utils.get(ctx.guild.emojis, name="plus")
 		if plussearch == None:
@@ -95,7 +109,7 @@ async def setup(ctx):
 	except:
 		await ctx.send(":x: An error has occurred while creating the emoji **:plus:**. Check the bot's permissions and that there's space for three more emojis and try again!")
 	
-	# Si el emoji "minus" no existe, el bot lo crea.
+	# If the emoji "minus" doesn't exist, the bot creates it.
 	try:
 		minussearch = discord.utils.get(ctx.guild.emojis, name="minus")
 		if minussearch == None:
@@ -106,8 +120,11 @@ async def setup(ctx):
 			await ctx.send(":six: The emoji **:minus:** already exists, no further action has been taken.")
 		
 		await ctx.send("-----------------------")
-		await ctx.send("You're all set! Now all you have to do is assign the **Curator** role on Server Settings to people you want to let contribute to #best_of. A Discord restart (CTRL+R) may be needed to see the emoji.")
-		await ctx.send("Thank you very much for installing **Rēto**! If you have any issues, please contact **@Erik#0944**. :heart:")
+		await ctx.send("You're all set! Now all you have to do is assign the **Curator** role on Server Settings to people you want to let contribute to #best_of. A Discord restart (CTRL+R) may be needed to see the emoji.\nAfter you're done, check out the ?emoji command if you want to edit what emojis are displayed as :10:, :plus: and :minus:.")
+		if devname != "":
+			await ctx.send("Thank you very much for installing **" + botname + "**! If you have any issues, please contact **" + devname + "**. :heart:")
+		else:
+			await ctx.send("Thank you very much for installing **" + botname + "**! :heart:")
 	except:
 		await ctx.send(":x: An error has occurred while creating the emoji **:minus:**. Check the bot's permissions and that there's space for three more emojis and try again!")
 
@@ -125,7 +142,7 @@ async def on_reaction_add(reaction, user):
 	if reaction.emoji.name == '10' and reaction.count == 1:
 		channel = reaction.message.channel
 		
-		#Mostrar el mensaje en un canal especial
+		# Post the message in #best-of
 
 		contenido=reaction.message.content
 		autor=reaction.message.author.name
@@ -139,19 +156,15 @@ async def on_reaction_add(reaction, user):
 			emberino.set_image(url=imagen)
 		channel = discord.utils.get(reaction.message.guild.channels, name="best-of")
 
-		#Añadir usuario a la tabla
+		# Add user to the points table
 		value = str(reaction.message.author.id)
 		exists = db.count(Query().username == value)
 		if exists == 0:
-			print("El usuario no existe en la base de datos. Añadiendolo...")
 			db.insert({'username': value, 'points': 10})
-			print ("+10 puntos añadidos!")
 		else:
-			print ("El usuario ya existe en la base de datos. Añadiendole 10 puntos...")
 			db.update(add('points',10), where('username') == value)
-			print ("Puntos actualizados!")
 		
-		# Si el canal "best-of" no existe, el bot lo crea y postea el mensaje ahi.
+		# If the channel #best-of doesn't exist, the bot creates it before posting it.
 		
 		if channel == None:
 			await reaction.message.guild.create_text_channel('best-of')
@@ -162,14 +175,14 @@ async def on_reaction_add(reaction, user):
 		else:
 			await channel.send(embed=emberino)
 		
-		#Manda el puto mensaje
+		# Send a confirmation message
 
 		channel = reaction.message.channel
 		result = db.get(Query()['username'] == value)
 		
 		send = await channel.send("Congrats, **{}**! Your post will be forever immortalized in the server's #best-of. You now have {} points. (+10)".format(reaction.message.author.name,result.get('points')))
 		
-		#Eliminar el mensaje
+		# Delete said message
 		await asyncio.sleep(3) 
 		await send.delete()
 
@@ -180,26 +193,22 @@ async def on_reaction_add(reaction, user):
 	if reaction.emoji.name == 'plus':
 		channel = reaction.message.channel
 
-		#Añadir usuario a la tabla
+		# Add user to the points table
 		value = str(reaction.message.author.id)
 		exists = db.count(Query().username == value)
 		if exists == 0:
-			print("El usuario no existe en la base de datos. Añadiendolo...")
 			db.insert({'username': value, 'points': 1})
-			print ("+1 punto añadido!")
 
-			#Manda el puto mensaje
+			# Send a confirmation message
 			result = db.get(Query()['username'] == value)
 			heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
 			await heart.delete()
 
 		else:
-			print ("El usuario ya existe en la base de datos. Añadiendole 1 punto...")
 			db.update(add('points',1), where('username') == value)
-			print ("+1 punto añadido!")
 
-			#Manda el puto mensaje
+			# Send a confirmation message
 			result = db.get(Query()['username'] == value)
 			heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
@@ -212,26 +221,22 @@ async def on_reaction_add(reaction, user):
 	if reaction.emoji.name == 'minus':
 		channel = reaction.message.channel
 
-		#Añadir usuario a la tabla
+		# Add user to the points table
 		value = str(reaction.message.author.id)
 		exists = db.count(Query().username == value)
 		if exists == 0:
-			print("El usuario no existe en la base de datos. Añadiendolo...")
 			db.insert({'username': value, 'points': -1})
-			print ("-1 punto restado!")
 
-			#Manda el puto mensaje
+			# Send a confirmation message
 			result = db.get(Query()['username'] == value)
 			crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
 			await crush.delete()
 
 		else:
-			print ("El usuario ya existe en la base de datos. Restandolé -1 punto...")
 			db.update(subtract('points',1), where('username') == value)
-			print ("-1 punto restado!")
 
-			#Manda el puto mensaje
+			# Send a confirmation message
 			result = db.get(Query()['username'] == value)
 			crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,result.get('points')))
 			await asyncio.sleep(3) 
@@ -241,8 +246,9 @@ async def on_reaction_add(reaction, user):
 #	      ?KARMA
 # -------------------------
 
-@bot.command(aliases=['points', 'point'])
+@bot.command(aliases=['points', 'point'], description="Check the accumulated amount of points (Karma) a given user has. Ping to check another user's karma account.")
 async def karma(ctx, *args):
+	"""Check your karma! (or karma of other people by @mention-ing them)."""
 	if not args:
 		valor = str(ctx.message.author)
 		searchvalor = str(ctx.message.author.id)
@@ -265,13 +271,122 @@ async def karma(ctx, *args):
 			valor = str(ctx.message.mentions[0].name)
 			send = await ctx.send("The user **{}** doesn't appear to have any points. Odd.".format(valor))
 
-@bot.command()
+# -------------------------
+#		MANAGE EMOJIS
+# -------------------------
+			
+@bot.command(aliases=['reto', 'config', 'cfg', 'emojis'], description='Used by server admins to manage their emojis. ?emoji edit to change the look of a heart/crush/10 points, ?emoji default to restore all emojis. REQUIRED ROLES: Manage messages')
+@commands.has_permissions(manage_guild=True)
+async def emoji(ctx, *args):
+	"""Used to manage bot emojis. REQUIRED ROLES: Manage messages"""
+	script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
+	rel_path = "images/testimage.png"
+	path = os.path.join(script_dir, rel_path)
+	if not args:
+		await ctx.send("Please provide an argument!\n**?emoji edit** *name_of_emoji* - Lets you edit any of the three default emojis (10/plus/minus). Image required.\n**?emoji default** - Restores the custom emoji (10/plus/minus) to their original state.")
+	elif args[0] == "edit":
+		if len(args) != 2:
+			await ctx.send ("No emoji name was provided. Valid emoji names: 10/plus/minus")
+		elif args[1] == "10":
+				if not ctx.message.attachments:
+					await ctx.send("I couldn't find an image! Upload an image along with your command (not an URL).")
+				else:
+					async with aiohttp.ClientSession() as session:
+						url = ctx.message.attachments[0].url
+						print (url)
+						async with session.get(url) as resp:
+							if resp.status == 200:
+								f = await aiofiles.open(path, mode='wb')
+								await f.write(await resp.read())
+								await f.close()
+								rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
+								with open("images/testimage.png", "rb") as image:
+									emojisearch = discord.utils.get(ctx.guild.emojis, name="10")
+									await emojisearch.delete()
+									await ctx.guild.create_custom_emoji(name="10", image=image.read(), roles=[rolesearch])
+									await ctx.send("The emoji **:10:** has been modified.")
+		elif args[1] == "plus":
+				if not ctx.message.attachments:
+					await ctx.send("I couldn't find an image! Upload an image along with your command (not an URL).")
+				else:
+					async with aiohttp.ClientSession() as session:
+						url = ctx.message.attachments[0].url
+						print (url)
+						async with session.get(url) as resp:
+							if resp.status == 200:
+								f = await aiofiles.open(path, mode='wb')
+								await f.write(await resp.read())
+								await f.close()
+								rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
+								with open("images/testimage.png", "rb") as image:
+									emojisearch = discord.utils.get(ctx.guild.emojis, name="plus")
+									await emojisearch.delete()
+									await ctx.guild.create_custom_emoji(name="plus", image=image.read())
+									await ctx.send("The emoji **:plus:** has been modified.")
+		elif args[1] == "minus":
+				if not ctx.message.attachments:
+					await ctx.send("I couldn't find an image! Upload an image along with your command (not an URL).")
+				else:
+					async with aiohttp.ClientSession() as session:
+						url = ctx.message.attachments[0].url
+						print (url)
+						async with session.get(url) as resp:
+							if resp.status == 200:
+								f = await aiofiles.open(path, mode='wb')
+								await f.write(await resp.read())
+								await f.close()
+								rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
+								with open("images/testimage.png", "rb") as image:
+									emojisearch = discord.utils.get(ctx.guild.emojis, name="minus")
+									await emojisearch.delete()
+									await ctx.guild.create_custom_emoji(name="minus", image=image.read())
+									await ctx.send("The emoji **:minus:** has been modified.")
+		else:
+			await ctx.send("Invalid emoji name. Valid names: 10/plus/minus")
+	elif args[0] == "default":
+		try:
+			# Restore :10:
+			rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
+			emojisearch = discord.utils.get(ctx.guild.emojis, name="10")
+			if emojisearch == None:
+				with open("images/star.png", "rb") as image:
+					await ctx.guild.create_custom_emoji(name="10", image=image.read(), roles=[rolesearch])
+			else:
+				await emojisearch.delete()
+				with open("images/star.png", "rb") as image:
+					await ctx.guild.create_custom_emoji(name="10", image=image.read(), roles=[rolesearch])
+			# Restore :plus:
+			emojisearch = discord.utils.get(ctx.guild.emojis, name="plus")
+			if emojisearch == None:
+				with open("images/plus.png", "rb") as image:
+					await ctx.guild.create_custom_emoji(name="plus", image=image.read())
+			else:
+				await emojisearch.delete()
+				with open("images/plus.png", "rb") as image:
+					await ctx.guild.create_custom_emoji(name="plus", image=image.read())
+			# Restore :minus:
+			emojisearch = discord.utils.get(ctx.guild.emojis, name="minus")
+			if emojisearch == None:
+				with open("images/minus.png", "rb") as image:
+					await ctx.guild.create_custom_emoji(name="minus", image=image.read())
+			else:
+				await emojisearch.delete()
+				with open("images/minus.png", "rb") as image:
+					await ctx.guild.create_custom_emoji(name="minus", image=image.read())
+			await ctx.send("All emojis have been restored!")
+		except:
+			await ctx.send("An error has occurred while restoring the emojis. Check the bot's permissions and that there's space for three more emojis and try again!")
+	else:
+		await ctx.send("Invalid argument!\n**?emoji edit** *name_of_emoji* - Lets you edit any of the three default emojis (10/plus/minus). Image required.\n**?emoji default** - Restores the custom emoji (10/plus/minus) to their original state.")
+@bot.command(description="Simple testing command to check the bot's latency.")
 async def ping(ctx):
+	"""Simple latency tester."""
 	latency = bot.latency
 	await ctx.send(latency)
 
-@bot.command()
+@bot.command(description='Sends an invite link for the bot to invite it to other servers.')
 async def invite(ctx):
-	await ctx.send("Here's an invitation link for the bot: https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot")
+	"""Invite the bot to your server!"""
+	await ctx.send("Here's an invitation link for the bot: https://discordapp.com/api/oauth2/authorize?client_id=" + str(bot.user.id) + "&permissions=1342449744&scope=bot")
 
-bot.run('INSERT-BOT-TOKEN-HERE')
+bot.run(bottoken)
