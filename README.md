@@ -25,6 +25,8 @@ So, you've decided to self-host Rēto. Whether that's because you want to put Ka
 - [discord.py](https://github.com/Rapptz/discord.py): py -3 -m pip install -U discord.py
 - [pyfiglet](https://github.com/pwaller/pyfiglet): pip install pyfiglet
 - [TinyDB](https://github.com/msiemens/tinydb): pip install tinydb
+- [aiofiles](https://github.com/Tinche/aiofiles): pip install aiofiles **(NEW)**
+
 
 ~~The next thing you'll need is a *MySQL database*.~~ Rēto doesn't use MySQL anymore, and the JSON database is created on first install. Hooray!
 
