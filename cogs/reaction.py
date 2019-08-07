@@ -30,7 +30,9 @@ class Reaction(commands.Cog):
 		
 	@commands.Cog.listener()
 	async def on_reaction_add(self, reaction, user):
-
+		
+		# to-do: check if user who reacted is same as user who posted the messages
+		
 		# -------------------------
 		#	  REACTION = :10:
 		# -------------------------
@@ -55,10 +57,35 @@ class Reaction(commands.Cog):
 			# Add user to the points table
 			value = str(reaction.message.author.id)
 			exists = db.count(Query().username == value)
+			server = str(reaction.message.guild.id)
 			if exists == 0:
-				db.insert({'username': value, 'points': 10})
+				print("user didnt exist.")
+				db.insert({'username': value, 'points': 10, 'servers': [server]})
 			else:
-				db.update(add('points',10), where('username') == value)
+				User=Query()
+				serverid=str(reaction.message.guild.id)
+				existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
+				print(str(existsserver))
+				print("user does exist.")
+				print("server id: " + serverid)
+				print("is the server in the list?? = " + str(existsserver))
+				if existsserver == 0:
+					print("server wasnt on the list.")
+					db.update(add('points',10), where('username') == value)
+					l = str(db.search((User.username == value)))
+					print(l)
+					if "servers" not in l:
+						print("legacy user, didn't have any servers. added its first one")
+						docs = db.search(User.username == value)
+						for doc in docs:
+							doc['servers'] = [str(server)]
+						db.write_back(docs)
+					else:
+						print("added a new server!")
+						db.update(add('servers',[server]), where('username') == value)
+				else:
+					print("server was on the list.")
+					db.update(add('points',10), where('username') == value)
 			
 			# If the channel #best-of doesn't exist, the bot creates it before posting it.
 			
@@ -92,23 +119,43 @@ class Reaction(commands.Cog):
 			# Add user to the points table
 			value = str(reaction.message.author.id)
 			exists = db.count(Query().username == value)
+			server = str(reaction.message.guild.id)
 			if exists == 0:
-				db.insert({'username': value, 'points': 1})
-
-				# Send a confirmation message
-				result = db.get(Query()['username'] == value)
-				heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,result.get('points')))
-				await asyncio.sleep(3) 
-				await heart.delete()
-
+				print("user didnt exist.")
+				db.insert({'username': value, 'points': 1, 'servers': [server]})
 			else:
-				db.update(add('points',1), where('username') == value)
+				User=Query()
+				serverid=str(reaction.message.guild.id)
+				existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
+				print(str(existsserver))
+				print("user does exist.")
+				print("server id: " + serverid)
+				print("is the server in the list?? = " + str(existsserver))
+				if existsserver == 0:
+					print("server wasnt on the list.")
+					db.update(add('points',1), where('username') == value)
+					l = str(db.search((User.username == value)))
+					print(l)
+					if "servers" not in l:
+						print("legacy user, didn't have any servers. added its first one")
+						docs = db.search(User.username == value)
+						for doc in docs:
+							doc['servers'] = [str(server)]
+						db.write_back(docs)
+					else:
+						print("added a new server!")
+						db.update(add('servers',[server]), where('username') == value)
+				else:
+					print("server was on the list.")
+					db.update(add('points',1), where('username') == value)
 
 				# Send a confirmation message
 				result = db.get(Query()['username'] == value)
 				heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,result.get('points')))
 				await asyncio.sleep(3) 
 				await heart.delete()
+				
+
 
 		# -------------------------
 		#	  REACTION = :MINUS:
@@ -120,17 +167,35 @@ class Reaction(commands.Cog):
 			# Add user to the points table
 			value = str(reaction.message.author.id)
 			exists = db.count(Query().username == value)
+			server = str(reaction.message.guild.id)
 			if exists == 0:
-				db.insert({'username': value, 'points': -1})
-
-				# Send a confirmation message
-				result = db.get(Query()['username'] == value)
-				crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,result.get('points')))
-				await asyncio.sleep(3) 
-				await crush.delete()
-
+				print("user didnt exist.")
+				db.insert({'username': value, 'points': 1, 'servers': [server]})
 			else:
-				db.update(subtract('points',1), where('username') == value)
+				User=Query()
+				serverid=str(reaction.message.guild.id)
+				existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
+				print(str(existsserver))
+				print("user does exist.")
+				print("server id: " + serverid)
+				print("is the server in the list?? = " + str(existsserver))
+				if existsserver == 0:
+					print("server wasnt on the list.")
+					db.update(subtract('points',1), where('username') == value)
+					l = str(db.search((User.username == value)))
+					print(l)
+					if "servers" not in l:
+						print("legacy user, didn't have any servers. added its first one")
+						docs = db.search(User.username == value)
+						for doc in docs:
+							doc['servers'] = [str(server)]
+						db.write_back(docs)
+					else:
+						print("added a new server!")
+						db.update(add('servers',[server]), where('username') == value)
+				else:
+					print("server was on the list.")
+					db.update(subtract('points',1), where('username') == value)
 
 				# Send a confirmation message
 				result = db.get(Query()['username'] == value)
