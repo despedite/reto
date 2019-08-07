@@ -8,6 +8,7 @@ import aiohttp
 import aiofiles
 import os.path
 import os
+import json
 
 db = TinyDB('db.json') #Database file: stores points of every user.
 cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
@@ -50,9 +51,9 @@ async def on_ready():
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
 	if botver != "":
-		game = discord.Game("?setup to start! | " + botver)
+		game = discord.Game("?leaderboards and ?glb! | " + botver)
 	else:
-		game = discord.Game("?setup to start!")
+		game = discord.Game("?leaderboards and ?glb!")
 	await bot.change_presence(activity=game)
 
 @bot.event
