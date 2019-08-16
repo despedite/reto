@@ -13,6 +13,7 @@ import datetime
 db = TinyDB('db.json') #Database file: stores points of every user.
 cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
 srv = TinyDB('server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
+table = db.table('_default', cache_size=None, smart_cache=True)
 
 config = cfg.search(Query()['search'] == 'value')
 for c in config:
@@ -92,9 +93,10 @@ class Karma(commands.Cog):
 	@commands.command(aliases=['lb'], description="Check the top 10 users of your server! May take a while to load.\nYour username/score isn't showing up on the leaderboards? Update 1.2.1 made it so servers you're in and your score are joined together. This will refresh the next time someone hearts/crushs/stars one of your comments.")
 	async def leaderboard(self, ctx, *args):
 		"""Check this server's users with the most karma."""
+		db.clear_cache()
 		User = Query()
 		server = str(ctx.message.guild.id)
-		result = db.search(User.servers.any([server])) # doesnt work
+		result = db.search(User.servers.all([server])) # doesnt work
 		print("server: " + str(server) + " result: " + str(result))
 		leaderboard = {} # Prepares an empty dictionary.
 		for x in result: # For each entry in the database:
