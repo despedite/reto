@@ -123,6 +123,11 @@ class Reaction(commands.Cog):
 			if exists == 0:
 				print("user didnt exist.")
 				db.insert({'username': value, 'points': 1, 'servers': [server]})
+				# Send a confirmation message
+				result = db.get(Query()['username'] == value)
+				heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(reaction.message.author.name,result.get('points')))
+				await asyncio.sleep(3) 
+				await heart.delete()
 			else:
 				User=Query()
 				serverid=str(reaction.message.guild.id)
@@ -171,6 +176,12 @@ class Reaction(commands.Cog):
 			if exists == 0:
 				print("user didnt exist.")
 				db.insert({'username': value, 'points': 1, 'servers': [server]})
+				# Send a confirmation message
+				result = db.get(Query()['username'] == value)
+				crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(reaction.message.author.name,result.get('points')))
+				await asyncio.sleep(3) 
+				await crush.delete()
+
 			else:
 				User=Query()
 				serverid=str(reaction.message.guild.id)
