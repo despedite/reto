@@ -13,6 +13,9 @@ import datetime
 db = TinyDB('db.json') #Database file: stores points of every user.
 cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
 srv = TinyDB('server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
+post = TinyDB('comments.json') #Comment leaderboard.
+priv = TinyDB('blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
+
 table = db.table('_default', cache_size=None, smart_cache=True)
 
 config = cfg.search(Query()['search'] == 'value')
@@ -119,5 +122,115 @@ class Karma(commands.Cog):
 		embed = discord.Embed(title="Server Leaderboard", colour=discord.Colour(0xa353a9), description=s, timestamp=datetime.datetime.utcfromtimestamp(1565153513))
 		embed.set_footer(text="Your score not appearing? ?help lb", icon_url=self.client.user.avatar_url)
 		glb = await ctx.send(embed=embed)
+		
+	# ---------------------------------
+	#	    ?GPLB (GLOBAL POST LB)
+	# ---------------------------------
+	
+	@commands.command(aliases=['gplb', 'globalpostleaderboards'], description="Check the top 10 posts of all time on every server! May take a while to load.")
+	async def globalpostleaderboard(self, ctx, *args):
+		"""Check the toppest posts on every guild!"""
+		result = post.all() # "Result" is just the entire database.
+		leaderboard = {} # Prepares an empty dictionary.
+		j = 0
+		for x in result: # For each entry in the database:
+			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers"))] # ...save the user's ID and its amount of points in a new Python database.
+			j = j+1
+		
+		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)
+		print(leaderboard)
+		
+		numero = 1
+		emoji = discord.utils.get(ctx.message.guild.emojis, name="plus")
+		
+		for key,values in leaderboard:
+			if numero != 11:
+				username = await self.client.fetch_user(values[2])
+				guild = await self.client.fetch_guild(values[4])
+				contenido=values[1]
+				autor=username
+				foto=username.avatar_url
+				if(len(values[3]) > 0):
+					imagen=values[3]
+				if numero == 1:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+				elif numero == 2:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+				elif numero == 3:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+				else:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+				emberino.set_author(name=autor
+				, icon_url=foto)
+				emberino.set_footer(text=guild, icon_url=guild.icon_url)
+				emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+				if numero == 1:
+					emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+				elif numero == 2:
+					emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+				elif numero == 3:
+					emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+				else:
+					emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+				if(len(values[3]) > 0):
+					emberino.set_image(url=values[3])
+				await ctx.send(embed=emberino)
+				numero = numero + 1
+
+	# ---------------------------------
+	#	    ?PLB (SERVER POST LB)
+	# ---------------------------------
+	
+	@commands.command(aliases=['splb', 'plb', 'serverpostleaderboard', 'postleaderboards', 'serverpostleaderboards'], description="Check the top 10 posts of all time on this server! May take a while to load.")
+	async def postleaderboard(self, ctx, *args):
+		"""Shows posts with most karma on this server!"""
+		currentguild = str(ctx.message.guild.id)
+		result = post.search(Query()['servers'] == currentguild) # "Result" is just the entire database.
+		leaderboard = {} # Prepares an empty dictionary.
+		j = 0
+		for x in result: # For each entry in the database:
+			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers"))] # ...save the user's ID and its amount of points in a new Python database.
+			j = j+1
+		
+		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)
+		print(leaderboard)
+		
+		numero = 1
+		emoji = discord.utils.get(ctx.message.guild.emojis, name="plus")
+		guild = ctx.message.guild #Optimization!
+		
+		for key,values in leaderboard:
+			if numero != 11:
+				username = await self.client.fetch_user(values[2])
+				contenido=values[1]
+				autor=username
+				foto=username.avatar_url
+				if(len(values[3]) > 0):
+					imagen=values[3]
+				if numero == 1:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+				elif numero == 2:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+				elif numero == 3:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+				else:
+					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+				emberino.set_author(name=autor
+				, icon_url=foto)
+				emberino.set_footer(text=guild, icon_url=guild.icon_url)
+				emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+				if numero == 1:
+					emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+				elif numero == 2:
+					emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+				elif numero == 3:
+					emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+				else:
+					emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+				if(len(values[3]) > 0):
+					emberino.set_image(url=values[3])
+				await ctx.send(embed=emberino)
+				numero = numero + 1
+
 def setup(client):
 	client.add_cog(Karma(client))
