@@ -21,6 +21,7 @@ for c in config:
 	devname = c['devname']
 	botver = c['botver']
 	prefix = c['prefix']
+	botactivity = c['activity']
 
 bot = commands.Bot(command_prefix=prefix)
 client = discord.Client()
@@ -51,9 +52,9 @@ async def on_ready():
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
 	if botver != "":
-		game = discord.Game("?leaderboards and ?glb! | " + botver)
+		game = discord.Game(botactivity + " | " + botver)
 	else:
-		game = discord.Game("?leaderboards and ?glb!")
+		game = discord.Game(botactivity)
 	await bot.change_presence(activity=game)
 
 @bot.event
