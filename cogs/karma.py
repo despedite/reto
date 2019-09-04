@@ -66,6 +66,7 @@ class Karma(commands.Cog):
 	@commands.command(aliases=['glb'], description="Check the top 10 users of Discord! May take a while to load.\nYour username/score isn't showing up on the leaderboards? Update 1.2.1 made it so servers you're in and your score are joined together. This will refresh the next time someone hearts/crushs/stars one of your comments.")
 	async def globalleaderboard(self, ctx, *args):
 		"""Check the top karma holders on all Discord!"""
+		db.clear_cache()
 		result = db.all() # "Result" is just the entire database.
 		leaderboard = {} # Prepares an empty dictionary.
 		for x in result: # For each entry in the database:
@@ -74,16 +75,28 @@ class Karma(commands.Cog):
 		s = ""
 		i = 0
 		for key, value in leaderboard: # For each value in the new, sorted DB:
-			if i != 10:
+			if not args:
+				if i != 10:
+					user = await self.client.fetch_user(key)
+					if i==0:
+						s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
+					elif i==1:
+						s += ("🥈 " + str(user) + " - " + str(value) +" Karma\n")
+					elif i==2:
+						s += ("🥉 " + str(user) + " - " + str(value) +" Karma\n")
+					else:
+						s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
+					i = i+1
+			elif args[0] == "all":
 				user = await self.client.fetch_user(key)
 				if i==0:
-					s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥇 #" + str(i+1) + " - " + str(user) + " - " + str(value) +" Karma\n")
 				elif i==1:
-					s += ("🥈 " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥈 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				elif i==2:
-					s += ("🥉 " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥉 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				else:
-					s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("✨ #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				i = i+1
 		embed = discord.Embed(title="Global Leaderboard", colour=discord.Colour(0xa353a9), description=s, timestamp=datetime.datetime.utcfromtimestamp(1565153513))
 		embed.set_footer(text="Your score not appearing? ?help glb", icon_url=self.client.user.avatar_url)
@@ -108,16 +121,28 @@ class Karma(commands.Cog):
 		s = ""
 		i = 0
 		for key, value in leaderboard: # For each value in the new, sorted DB:
-			if i != 10:
+			if not args:
+				if i != 10:
+					user = await self.client.fetch_user(key)
+					if i==0:
+						s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
+					elif i==1:
+						s += ("🥈 " + str(user) + " - " + str(value) +" Karma\n")
+					elif i==2:
+						s += ("🥉 " + str(user) + " - " + str(value) +" Karma\n")
+					else:
+						s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
+					i = i+1
+			elif args[0] == "all":
 				user = await self.client.fetch_user(key)
 				if i==0:
-					s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥇 #" + str(i+1) + " - " + str(user) + " - " + str(value) +" Karma\n")
 				elif i==1:
-					s += ("🥈 " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥈 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				elif i==2:
-					s += ("🥉 " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥉 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				else:
-					s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("✨ #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				i = i+1
 		embed = discord.Embed(title="Server Leaderboard", colour=discord.Colour(0xa353a9), description=s, timestamp=datetime.datetime.utcfromtimestamp(1565153513))
 		embed.set_footer(text="Your score not appearing? ?help lb", icon_url=self.client.user.avatar_url)
