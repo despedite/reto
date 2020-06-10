@@ -15,8 +15,7 @@ db = TinyDB('db.json') #Database file: stores points of every user.
 cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
 srv = TinyDB('server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
 
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
 	bottoken = c['bottoken']
 	botname = c['botname']
 	devname = c['devname']
