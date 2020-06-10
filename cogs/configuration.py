@@ -13,8 +13,7 @@ cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Mod
 srv = TinyDB('server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
 best = TinyDB('bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
 
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
 	bottoken = c['bottoken']
 	botname = c['botname']
 	devname = c['devname']

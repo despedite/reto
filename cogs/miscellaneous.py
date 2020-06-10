@@ -16,8 +16,7 @@ srv = TinyDB('server.json') #Server-specific configuration - allows you to modif
 priv = TinyDB('blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
 best = TinyDB('bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
 
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
 	bottoken = c['bottoken']
 	botname = c['botname']
 	devname = c['devname']
