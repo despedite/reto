@@ -152,61 +152,169 @@ class Karma(commands.Cog):
 	#	    ?GPLB (GLOBAL POST LB)
 	# ---------------------------------
 	
-	@commands.command(aliases=['gplb', 'globalpostleaderboards'], description="Check the top 10 posts of all time on every server! May take a while to load.")
+	@commands.command(aliases=['gplb', 'globalpostleaderboards'], description="Check the top 10 posts of all time on every server! May take a while to load. By default, it doesn't show comments posted in Not Safe for Work channels - ?gplb nsfw will let you see NSFW posts only, and ?gplb all will let you see both NSFW and SFW posts.")
 	async def globalpostleaderboard(self, ctx, *args):
 		"""Check the toppest posts on every guild!"""
 		result = post.all() # "Result" is just the entire database.
 		leaderboard = {} # Prepares an empty dictionary.
 		j = 0
 		for x in result: # For each entry in the database:
-			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers"))] # ...save the user's ID and its amount of points in a new Python database.
+			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers")), str(x.get("stars")), str(x.get("nsfw"))] # ...save the user's ID and its amount of points in a new Python database.
 			j = j+1
 		
 		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)
-		print(leaderboard)
 		
 		numero = 1
 		emoji = discord.utils.get(ctx.message.guild.emojis, name="plus")
 		
 		for key,values in leaderboard:
 			if numero != 11:
-				username = await self.client.fetch_user(values[2])
-				guild = await self.client.fetch_guild(values[4])
-				contenido=values[1]
-				autor=username
-				foto=username.avatar_url
-				if(len(values[3]) > 0):
-					imagen=values[3]
-				if numero == 1:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-				elif numero == 2:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-				elif numero == 3:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+				if args:
+					if args[0] == "nsfw":
+						if (values[6] == "True"):
+							username = await self.client.fetch_user(values[2])
+							guild = await self.client.fetch_guild(values[4])
+							contenido=values[1]
+							autor=username
+							foto=username.avatar_url
+							if(len(values[3]) > 0):
+								imagen=values[3]
+							if numero == 1:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+							elif numero == 2:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+							elif numero == 3:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+							else:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+							emberino.set_author(name=autor
+							, icon_url=foto)
+							emberino.set_footer(text=guild, icon_url=guild.icon_url)
+							if numero == 1:
+								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+							elif numero == 2:
+								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+							elif numero == 3:
+								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+							else:
+								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+							if (values[5] != "None"): #if theres 'stars' value in post
+								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+							if(len(values[3]) > 0):
+								emberino.set_image(url=values[3])
+							await ctx.send(embed=emberino)
+							numero = numero + 1
+					elif args[0] == "all":
+						username = await self.client.fetch_user(values[2])
+						guild = await self.client.fetch_guild(values[4])
+						contenido=values[1]
+						autor=username
+						foto=username.avatar_url
+						if(len(values[3]) > 0):
+							imagen=values[3]
+						if numero == 1:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+						elif numero == 2:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+						elif numero == 3:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+						else:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+						emberino.set_author(name=autor
+						, icon_url=foto)
+						emberino.set_footer(text=guild, icon_url=guild.icon_url)
+						if numero == 1:
+							emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+						elif numero == 2:
+							emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+						elif numero == 3:
+							emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+						else:
+							emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+						emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+						if (values[5] != "None"): #if theres 'stars' value in post
+							emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+						if(len(values[3]) > 0):
+							emberino.set_image(url=values[3])
+						await ctx.send(embed=emberino)
+						numero = numero + 1
+					else:
+						if (values[6] != "True" or values[6] == "None"):
+							username = await self.client.fetch_user(values[2])
+							guild = await self.client.fetch_guild(values[4])
+							contenido=values[1]
+							autor=username
+							foto=username.avatar_url
+							if(len(values[3]) > 0):
+								imagen=values[3]
+							if numero == 1:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+							elif numero == 2:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+							elif numero == 3:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+							else:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+							emberino.set_author(name=autor
+							, icon_url=foto)
+							emberino.set_footer(text=guild, icon_url=guild.icon_url)
+							if numero == 1:
+								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+							elif numero == 2:
+								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+							elif numero == 3:
+								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+							else:
+								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+							if (values[5] != "None"): #if theres 'stars' value in post
+								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+							if(len(values[3]) > 0):
+								emberino.set_image(url=values[3])
+							await ctx.send(embed=emberino)
+							numero = numero + 1
 				else:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-				emberino.set_author(name=autor
-				, icon_url=foto)
-				emberino.set_footer(text=guild, icon_url=guild.icon_url)
-				emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-				if numero == 1:
-					emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-				elif numero == 2:
-					emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-				elif numero == 3:
-					emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-				else:
-					emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-				if(len(values[3]) > 0):
-					emberino.set_image(url=values[3])
-				await ctx.send(embed=emberino)
-				numero = numero + 1
+					if (values[6] != "True" or values[6] == "None"):
+						username = await self.client.fetch_user(values[2])
+						guild = await self.client.fetch_guild(values[4])
+						contenido=values[1]
+						autor=username
+						foto=username.avatar_url
+						if(len(values[3]) > 0):
+							imagen=values[3]
+						if numero == 1:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+						elif numero == 2:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+						elif numero == 3:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+						else:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+						emberino.set_author(name=autor
+						, icon_url=foto)
+						emberino.set_footer(text=guild, icon_url=guild.icon_url)
+						if numero == 1:
+							emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+						elif numero == 2:
+							emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+						elif numero == 3:
+							emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+						else:
+							emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+						emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+						if (values[5] != "None"): #if theres 'stars' value in post
+							emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+						if(len(values[3]) > 0):
+							emberino.set_image(url=values[3])
+						await ctx.send(embed=emberino)
+						numero = numero + 1
 
 	# ---------------------------------
 	#	    ?PLB (SERVER POST LB)
 	# ---------------------------------
 	
-	@commands.command(aliases=['splb', 'plb', 'serverpostleaderboard', 'postleaderboards', 'serverpostleaderboards'], description="Check the top 10 posts of all time on this server! May take a while to load.")
+	@commands.command(aliases=['splb', 'plb', 'serverpostleaderboard', 'postleaderboards', 'serverpostleaderboards'], description="Check the top 10 posts of all time on this server! May take a while to load. By default, it shows all comments regardless if they were posted in Not Safe for Work channels or not - ?plb nsfw will let you see NSFW posts only, and ?plb sfw will let you see only SFW posts.")
 	async def postleaderboard(self, ctx, *args):
 		"""Shows posts with most karma on this server!"""
 		currentguild = str(ctx.message.guild.id)
@@ -214,11 +322,10 @@ class Karma(commands.Cog):
 		leaderboard = {} # Prepares an empty dictionary.
 		j = 0
 		for x in result: # For each entry in the database:
-			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers"))] # ...save the user's ID and its amount of points in a new Python database.
+			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers")), str(x.get("stars")), str(x.get("nsfw"))] # ...save the user's ID and its amount of points in a new Python database.
 			j = j+1
 		
 		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)
-		print(leaderboard)
 		
 		numero = 1
 		emoji = discord.utils.get(ctx.message.guild.emojis, name="plus")
@@ -226,36 +333,141 @@ class Karma(commands.Cog):
 		
 		for key,values in leaderboard:
 			if numero != 11:
-				username = await self.client.fetch_user(values[2])
-				contenido=values[1]
-				autor=username
-				foto=username.avatar_url
-				if(len(values[3]) > 0):
-					imagen=values[3]
-				if numero == 1:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-				elif numero == 2:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-				elif numero == 3:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+				if args:
+					if args[0] == "sfw":
+						if (values[6] != "True" or values[6] == "None"):
+							username = await self.client.fetch_user(values[2])
+							contenido=values[1]
+							autor=username
+							foto=username.avatar_url
+							if(len(values[3]) > 0):
+								imagen=values[3]
+							if numero == 1:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+							elif numero == 2:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+							elif numero == 3:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+							else:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+							emberino.set_author(name=autor
+							, icon_url=foto)
+							emberino.set_footer(text=guild, icon_url=guild.icon_url)
+							if numero == 1:
+								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+							elif numero == 2:
+								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+							elif numero == 3:
+								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+							else:
+								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+							if (values[5] != "None"): #if theres 'stars' value in post
+								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+							if(len(values[3]) > 0):
+								emberino.set_image(url=values[3])
+							await ctx.send(embed=emberino)
+							numero = numero + 1
+					elif args[0] == "nsfw":
+						if (values[6] == "True"):
+							username = await self.client.fetch_user(values[2])
+							contenido=values[1]
+							autor=username
+							foto=username.avatar_url
+							if(len(values[3]) > 0):
+								imagen=values[3]
+							if numero == 1:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+							elif numero == 2:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+							elif numero == 3:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+							else:
+								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+							emberino.set_author(name=autor
+							, icon_url=foto)
+							emberino.set_footer(text=guild, icon_url=guild.icon_url)
+							if numero == 1:
+								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+							elif numero == 2:
+								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+							elif numero == 3:
+								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+							else:
+								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+							if (values[5] != "None"): #if theres 'stars' value in post
+								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+							if(len(values[3]) > 0):
+								emberino.set_image(url=values[3])
+							await ctx.send(embed=emberino)
+							numero = numero + 1
+					else:
+						username = await self.client.fetch_user(values[2])
+						contenido=values[1]
+						autor=username
+						foto=username.avatar_url
+						if(len(values[3]) > 0):
+							imagen=values[3]
+						if numero == 1:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+						elif numero == 2:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+						elif numero == 3:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+						else:
+							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+						emberino.set_author(name=autor
+						, icon_url=foto)
+						emberino.set_footer(text=guild, icon_url=guild.icon_url)
+						if numero == 1:
+							emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+						elif numero == 2:
+							emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+						elif numero == 3:
+							emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+						else:
+							emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+						emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+						if (values[5] != "None"): #if theres 'stars' value in post
+							emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+						if(len(values[3]) > 0):
+							emberino.set_image(url=values[3])
+						await ctx.send(embed=emberino)
+						numero = numero + 1
 				else:
-					emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-				emberino.set_author(name=autor
-				, icon_url=foto)
-				emberino.set_footer(text=guild, icon_url=guild.icon_url)
-				emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-				if numero == 1:
-					emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-				elif numero == 2:
-					emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-				elif numero == 3:
-					emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-				else:
-					emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-				if(len(values[3]) > 0):
-					emberino.set_image(url=values[3])
-				await ctx.send(embed=emberino)
-				numero = numero + 1
+					username = await self.client.fetch_user(values[2])
+					contenido=values[1]
+					autor=username
+					foto=username.avatar_url
+					if(len(values[3]) > 0):
+						imagen=values[3]
+					if numero == 1:
+						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
+					elif numero == 2:
+						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
+					elif numero == 3:
+						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
+					else:
+						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
+					emberino.set_author(name=autor
+					, icon_url=foto)
+					emberino.set_footer(text=guild, icon_url=guild.icon_url)
+					if numero == 1:
+						emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
+					elif numero == 2:
+						emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
+					elif numero == 3:
+						emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
+					else:
+						emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
+					emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+					if (values[5] != "None"): #if theres 'stars' value in post
+						emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
+					if(len(values[3]) > 0):
+						emberino.set_image(url=values[3])
+					await ctx.send(embed=emberino)
+					numero = numero + 1
 
 def setup(client):
 	client.add_cog(Karma(client))
