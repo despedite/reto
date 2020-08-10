@@ -1,0 +1,13 @@
+{
+  "_default": {
+    "1": {
+      "bottoken": "INSERT BOT TOKEN HERE",
+      "botname": "Reto",
+      "prefix": "?",
+      "support": "https://discord.gg/rrszpTN",
+      "botver": "1.5",
+      "botowner":  ["INSERT USER ID(s) OF BOT OWNER(s) HERE"],
+      "search": "value"
+    }
+  }
+}
