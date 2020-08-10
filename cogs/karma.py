@@ -10,54 +10,47 @@ import os
 import json
 import datetime
 
-db = TinyDB('db.json') #Database file: stores points of every user.
-cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
-srv = TinyDB('server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
-post = TinyDB('comments.json') #Comment leaderboard.
-priv = TinyDB('blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
+from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile
 
-table = db.table('_default', cache_size=None)
+db = TinyDB('json/db.json') #Database file: stores points of every user.
+cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
+srv = TinyDB('json/server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
+post = TinyDB('json/comments.json') #Comment leaderboard.
+priv = TinyDB('json/blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
+dm = TinyDB('json/deletables.json') #Message deletion for Leaderboards.
 
-for c in cfg:
+table = db.table('_default', cache_size=None, smart_cache=True)
+
+config = cfg.search(Query()['search'] == 'value')
+for c in config:
 	bottoken = c['bottoken']
 	botname = c['botname']
-	devname = c['devname']
+	support = c['support']
 	botver = c['botver']
 	prefix = c['prefix']
+	botowner = c['botowner']
 
 class Karma(commands.Cog):
+	"""
+	Karma counts and leaderboards and popular posts, oh my!
+	"""
 	def __init__(self, client):
 		self.client = client
 	
 	# -------------------------
-	#	      ?KARMA
+	#	      ?PROFILE
 	# -------------------------
 
-	@commands.command(aliases=['points', 'point'], description="Check the accumulated amount of points (Karma) a given user has. Ping to check another user's karma account.")
-	async def karma(self, ctx, *args):
-		"""Check your karma! (or karma of other people by @mention-ing them)."""
+	@commands.command(aliases=['karma', 'points', 'point'], description="Check the accumulated amount of points (Karma) a given user has, among with other stats! Ping to check another user's karma account.")
+	async def profile(self, ctx, *args):
+		"""Check your (or others') profile, with info about your karma total and more!"""
 		if not args:
-			valor = str(ctx.message.author)
-			searchvalor = str(ctx.message.author.id)
-
-			result = db.get(Query()['username'] == searchvalor)
-			
-			send = await ctx.send("The user **{}** has a total of **{}** points.".format(ctx.message.author.name,result.get('points')))
+			await getProfile(ctx.message.author, ctx, self)
 		elif not ctx.message.mentions:
 			await ctx.send("Invalid command! Do **?karma** to find out about your score, or @mention another user to get their score.")
 		else:
-			try:
-				valor = str(ctx.message.mentions[0].name)
-				searchvalor = str(ctx.message.mentions[0].id)
-				
-				resultmention = db.get(Query()['username'] == searchvalor)
-				resultprint = resultmention.get('points')
-					
-				send = await ctx.send("The user **{}** has a total of **{}** points.".format(valor,resultprint))
-			except:
-				valor = str(ctx.message.mentions[0].name)
-				send = await ctx.send("The user **{}** doesn't appear to have any points. Odd.".format(valor))
-	
+			await getProfile(ctx.message.mentions[0], ctx, self)
+
 	# -------------------------------
 	#	    ?GLOBALLEADERBOARD
 	# -------------------------------
@@ -105,7 +98,7 @@ class Karma(commands.Cog):
 	#	    ?LEADERBOARD
 	# --------------------------
 	
-	@commands.command(aliases=['lb'], description="Check the top 10 users of your server! May take a while to load.\nYour username/score isn't showing up on the leaderboards? Update 1.2.1 made it so servers you're in and your score are joined together. This will refresh the next time someone hearts/crushs/stars one of your comments.")
+	@commands.command(aliases=['lb', 'llb'], description="Check the top 10 users of your server! May take a while to load.\nYour username/score isn't showing up on the leaderboards? Update 1.2.1 made it so servers you're in and your score are joined together. This will refresh the next time someone hearts/crushs/stars one of your comments.")
 	async def leaderboard(self, ctx, *args):
 		"""Check this server's users with the most karma."""
 		db.clear_cache()
@@ -154,7 +147,16 @@ class Karma(commands.Cog):
 	@commands.command(aliases=['gplb', 'globalpostleaderboards'], description="Check the top 10 posts of all time on every server! May take a while to load. By default, it doesn't show comments posted in Not Safe for Work channels - ?gplb nsfw will let you see NSFW posts only, and ?gplb all will let you see both NSFW and SFW posts.")
 	async def globalpostleaderboard(self, ctx, *args):
 		"""Check the toppest posts on every guild!"""
-		result = post.all() # "Result" is just the entire database.
+		if not args:
+			result = post.all() # "Result" is just the entire database.
+		else:
+			if ctx.message.mentions:
+				valor = str(ctx.message.mentions[0].id)
+				print(valor)
+				result = post.search(Query()['username'] == valor) 
+			else:
+				result = post.all() # Defaults to every post. (?gplb nsfw, eg.)
+
 		leaderboard = {} # Prepares an empty dictionary.
 		j = 0
 		for x in result: # For each entry in the database:
@@ -162,152 +164,10 @@ class Karma(commands.Cog):
 			j = j+1
 		
 		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)
-		
-		numero = 1
-		emoji = discord.utils.get(ctx.message.guild.emojis, name="plus")
-		
-		for key,values in leaderboard:
-			if numero != 11:
-				if args:
-					if args[0] == "nsfw":
-						if (values[6] == "True"):
-							username = await self.client.fetch_user(values[2])
-							guild = await self.client.fetch_guild(values[4])
-							contenido=values[1]
-							autor=username
-							foto=username.avatar_url
-							if(len(values[3]) > 0):
-								imagen=values[3]
-							if numero == 1:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-							elif numero == 2:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-							elif numero == 3:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-							else:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-							emberino.set_author(name=autor
-							, icon_url=foto)
-							emberino.set_footer(text=guild, icon_url=guild.icon_url)
-							if numero == 1:
-								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-							elif numero == 2:
-								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-							elif numero == 3:
-								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-							else:
-								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-							if (values[5] != "None"): #if theres 'stars' value in post
-								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-							if(len(values[3]) > 0):
-								emberino.set_image(url=values[3])
-							await ctx.send(embed=emberino)
-							numero = numero + 1
-					elif args[0] == "all":
-						username = await self.client.fetch_user(values[2])
-						guild = await self.client.fetch_guild(values[4])
-						contenido=values[1]
-						autor=username
-						foto=username.avatar_url
-						if(len(values[3]) > 0):
-							imagen=values[3]
-						if numero == 1:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-						elif numero == 2:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-						elif numero == 3:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-						else:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-						emberino.set_author(name=autor
-						, icon_url=foto)
-						emberino.set_footer(text=guild, icon_url=guild.icon_url)
-						if numero == 1:
-							emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-						elif numero == 2:
-							emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-						elif numero == 3:
-							emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-						else:
-							emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-						emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-						if (values[5] != "None"): #if theres 'stars' value in post
-							emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-						if(len(values[3]) > 0):
-							emberino.set_image(url=values[3])
-						await ctx.send(embed=emberino)
-						numero = numero + 1
-					else:
-						if (values[6] != "True" or values[6] == "None"):
-							username = await self.client.fetch_user(values[2])
-							guild = await self.client.fetch_guild(values[4])
-							contenido=values[1]
-							autor=username
-							foto=username.avatar_url
-							if(len(values[3]) > 0):
-								imagen=values[3]
-							if numero == 1:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-							elif numero == 2:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-							elif numero == 3:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-							else:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-							emberino.set_author(name=autor
-							, icon_url=foto)
-							emberino.set_footer(text=guild, icon_url=guild.icon_url)
-							if numero == 1:
-								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-							elif numero == 2:
-								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-							elif numero == 3:
-								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-							else:
-								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-							if (values[5] != "None"): #if theres 'stars' value in post
-								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-							if(len(values[3]) > 0):
-								emberino.set_image(url=values[3])
-							await ctx.send(embed=emberino)
-							numero = numero + 1
-				else:
-					if (values[6] != "True" or values[6] == "None"):
-						username = await self.client.fetch_user(values[2])
-						guild = await self.client.fetch_guild(values[4])
-						contenido=values[1]
-						autor=username
-						foto=username.avatar_url
-						if(len(values[3]) > 0):
-							imagen=values[3]
-						if numero == 1:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-						elif numero == 2:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-						elif numero == 3:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-						else:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-						emberino.set_author(name=autor
-						, icon_url=foto)
-						emberino.set_footer(text=guild, icon_url=guild.icon_url)
-						if numero == 1:
-							emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-						elif numero == 2:
-							emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-						elif numero == 3:
-							emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-						else:
-							emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-						emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-						if (values[5] != "None"): #if theres 'stars' value in post
-							emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-						if(len(values[3]) > 0):
-							emberino.set_image(url=values[3])
-						await ctx.send(embed=emberino)
-						numero = numero + 1
+
+		page = 1
+
+		await printLeaderboard(page, leaderboard, self, ctx, ctx.message, ctx, args, True)
 
 	# ---------------------------------
 	#	    ?PLB (SERVER POST LB)
@@ -317,7 +177,18 @@ class Karma(commands.Cog):
 	async def postleaderboard(self, ctx, *args):
 		"""Shows posts with most karma on this server!"""
 		currentguild = str(ctx.message.guild.id)
-		result = post.search(Query()['servers'] == currentguild) # "Result" is just the entire database.
+		User = Query()
+
+		if not args:
+			result = post.search(Query()['servers'] == currentguild) # "Result" is just the entire database.
+		else:
+			if ctx.message.mentions:
+				valor = str(ctx.message.mentions[0].id)
+				print(valor)
+				result = post.search((User.servers == currentguild) & (User.username == valor))
+			else:
+				result = post.search(Query()['servers'] == currentguild) # Defaults to every post. (?plb sfw, eg.)
+
 		leaderboard = {} # Prepares an empty dictionary.
 		j = 0
 		for x in result: # For each entry in the database:
@@ -325,148 +196,16 @@ class Karma(commands.Cog):
 			j = j+1
 		
 		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)
+
+		page = 1
 		
-		numero = 1
-		emoji = discord.utils.get(ctx.message.guild.emojis, name="plus")
-		guild = ctx.message.guild #Optimization!
-		
-		for key,values in leaderboard:
-			if numero != 11:
-				if args:
-					if args[0] == "sfw":
-						if (values[6] != "True" or values[6] == "None"):
-							username = await self.client.fetch_user(values[2])
-							contenido=values[1]
-							autor=username
-							foto=username.avatar_url
-							if(len(values[3]) > 0):
-								imagen=values[3]
-							if numero == 1:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-							elif numero == 2:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-							elif numero == 3:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-							else:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-							emberino.set_author(name=autor
-							, icon_url=foto)
-							emberino.set_footer(text=guild, icon_url=guild.icon_url)
-							if numero == 1:
-								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-							elif numero == 2:
-								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-							elif numero == 3:
-								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-							else:
-								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-							if (values[5] != "None"): #if theres 'stars' value in post
-								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-							if(len(values[3]) > 0):
-								emberino.set_image(url=values[3])
-							await ctx.send(embed=emberino)
-							numero = numero + 1
-					elif args[0] == "nsfw":
-						if (values[6] == "True"):
-							username = await self.client.fetch_user(values[2])
-							contenido=values[1]
-							autor=username
-							foto=username.avatar_url
-							if(len(values[3]) > 0):
-								imagen=values[3]
-							if numero == 1:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-							elif numero == 2:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-							elif numero == 3:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-							else:
-								emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-							emberino.set_author(name=autor
-							, icon_url=foto)
-							emberino.set_footer(text=guild, icon_url=guild.icon_url)
-							if numero == 1:
-								emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-							elif numero == 2:
-								emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-							elif numero == 3:
-								emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-							else:
-								emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-							emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-							if (values[5] != "None"): #if theres 'stars' value in post
-								emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-							if(len(values[3]) > 0):
-								emberino.set_image(url=values[3])
-							await ctx.send(embed=emberino)
-							numero = numero + 1
-					else:
-						username = await self.client.fetch_user(values[2])
-						contenido=values[1]
-						autor=username
-						foto=username.avatar_url
-						if(len(values[3]) > 0):
-							imagen=values[3]
-						if numero == 1:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-						elif numero == 2:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-						elif numero == 3:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-						else:
-							emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-						emberino.set_author(name=autor
-						, icon_url=foto)
-						emberino.set_footer(text=guild, icon_url=guild.icon_url)
-						if numero == 1:
-							emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-						elif numero == 2:
-							emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-						elif numero == 3:
-							emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-						else:
-							emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-						emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-						if (values[5] != "None"): #if theres 'stars' value in post
-							emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-						if(len(values[3]) > 0):
-							emberino.set_image(url=values[3])
-						await ctx.send(embed=emberino)
-						numero = numero + 1
-				else:
-					username = await self.client.fetch_user(values[2])
-					contenido=values[1]
-					autor=username
-					foto=username.avatar_url
-					if(len(values[3]) > 0):
-						imagen=values[3]
-					if numero == 1:
-						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xffd700))
-					elif numero == 2:
-						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xc0c0c0))
-					elif numero == 3:
-						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xcd7f32))
-					else:
-						emberino=discord.Embed(description=contenido, colour=discord.Colour(0xa353a9))
-					emberino.set_author(name=autor
-					, icon_url=foto)
-					emberino.set_footer(text=guild, icon_url=guild.icon_url)
-					if numero == 1:
-						emberino.add_field(name="Position", value="🥇 "+str(numero), inline=True)
-					elif numero == 2:
-						emberino.add_field(name="Position", value="🥈 "+str(numero), inline=True)
-					elif numero == 3:
-						emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
-					else:
-						emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-					emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
-					if (values[5] != "None"): #if theres 'stars' value in post
-						emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
-					if(len(values[3]) > 0):
-						emberino.set_image(url=values[3])
-					await ctx.send(embed=emberino)
-					numero = numero + 1
+		await printLeaderboard(page, leaderboard, self, ctx, ctx.message, ctx, args, False)
+
+
+# -------------------------------
+# 	  LEADERBOARD FUNCTIONS
+# -------------------------------
+
 
 def setup(client):
 	client.add_cog(Karma(client))
