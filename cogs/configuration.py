@@ -7,20 +7,26 @@ import aiohttp
 import aiofiles
 import os.path
 import os
+from tinydb.operations import delete
 
-db = TinyDB('db.json') #Database file: stores points of every user.
-cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
-srv = TinyDB('server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
-best = TinyDB('bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
+db = TinyDB('json/db.json') #Database file: stores points of every user.
+cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
+srv = TinyDB('json/server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
+best = TinyDB('json/bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
+customprefix = TinyDB('json/prefix.json') #Prefix file: custom prefixes per server.
 
-for c in cfg:
+config = cfg.search(Query()['search'] == 'value')
+for c in config:
 	bottoken = c['bottoken']
 	botname = c['botname']
-	devname = c['devname']
+	support = c['support']
 	botver = c['botver']
 	prefix = c['prefix']
 
 class Configuration(commands.Cog):
+	"""
+	Things that have to do with setting up and personalizing the bot.
+	"""
 	def __init__(self, client):
 		self.client = client
 	
@@ -116,18 +122,18 @@ class Configuration(commands.Cog):
 			if creationLog != "":
 				await ctx.send(creationLog)
 			await ctx.send("*What now?*\n- Giving someone the role *Curator* on Server Settings will let them use the " + str(emoji) + " emoji to star posts. A Discord restart (CTRL+R) may be needed to see the emoji.\n- Edit the look of the default emojis using the command ?emoji to make " + botname + " your own!\n- Rename the #best-of channel to a name you like the most on Server Settings.\n- Use the command ?notification if your server is big, and you'd rather change the confirm message (e.g. Congrats! +10 points to the user) to a reaction.")
-			if devname != "":
-				await ctx.send("- If any issues arise, make sure to check in on Reto's official support server, over at **" + devname + "**. :heart:")
+			if support != "":
+				await ctx.send("- If any issues arise, make sure to check in on " + botname + "'s official support server, over at **" + support + "**. :heart:")
 			else:
 				await ctx.send("- Thank you very much for installing **" + botname + "**! :heart:")
 		elif error == True:
 			await ctx.send("**Oops!** Something happened and the setup couldn't be completed. (" + errorLog + ")\n- Check that there is space to create three new emojis and that the bot has sufficient permissions.\n- If you're certain everything was taken care off, try writting ?setup again.")
-			if devname != "":
-				await ctx.send("- In case these issues persist, get in touch: " + devname)
+			if support != "":
+				await ctx.send("- In case these issues persist, get in touch: " + support)
 		else:
 			await ctx.send("**" + botname + "** was already set up - nothing has changed!\n\n*Want some pointers?*\n- Giving someone the role *Curator* on Server Settings will let them use the " + str(emoji) + " emoji to star posts. A Discord restart (CTRL+R) may be needed to see the emoji.\n- Edit the look of the default emojis using the command ?emoji to make " + botname + " your own!\n- Rename the #best-of channel to a name you like the most on Server Settings.\n- Use the command ?notification if your server is big, and you'd rather change the confirm message (e.g. Congrats! +10 points to the user) to a reaction.")
-			if devname != "":
-				await ctx.send("- If any issues arise, make sure to check in on Reto's official support server, over at **" + devname + "**. :heart:")
+			if support != "":
+				await ctx.send("- If any issues arise, make sure to check in on " + botname + "'s official support server, over at **" + support + "**. :heart:")
 			else:
 				await ctx.send("- Thank you very much for installing **" + botname + "**! :heart:")
 			
@@ -172,7 +178,7 @@ class Configuration(commands.Cog):
 										emojisearch = discord.utils.get(ctx.guild.emojis, name="10")
 										await emojisearch.delete()
 										await ctx.guild.create_custom_emoji(name="10", image=image.read())
-										await ctx.send("The emoji **:plus:** has been modified.")
+										await ctx.send("The emoji **:10:** has been modified.")
 										
 			elif args[1] == "plus":
 					if not ctx.message.attachments:
@@ -275,6 +281,25 @@ class Configuration(commands.Cog):
 			await y2k.delete()
 
 	# -------------------------
+	#	  CHANGE BOT PREFIX
+	# -------------------------
+				
+	@commands.command(description="Change the bot's prefix to whichever you want. You can also use ?prefix default to get everything back to normal.")
+	@commands.has_permissions(manage_guild=True)
+	async def prefix(self,ctx,*args):
+		"""Change the bot's prefix to whichever you want."""
+		if args:
+			if args[0] == "default":
+				pre = customprefix.get(Query().server == ctx.message.guild.id)
+				customprefix.remove(doc_ids=[int(pre.doc_id)])
+				await ctx.send("Your prefix is back to normal! You can now use `?` on " + botname + "'s commands.")
+			else:
+				customprefix.upsert({'server': ctx.message.guild.id, 'prefix': args[0]}, Query().server == ctx.message.guild.id)
+				await ctx.send("Your prefix is now `" + args[0] + "`! You can now use it as a prefix to " + botname + "'s commands.")
+		else:		 
+			await ctx.send("Set up your prefix by writing in `?prefix *symbol*`. If you've messed up, you can restore it to default by writing `?prefix default`.\n_(Do note that the prompts that may show up on the bot won't change according to your custom prefix at this time)._")
+
+	# -------------------------
 	#	CHANGE NOTIFICATIONS
 	# -------------------------
 				
@@ -295,13 +320,16 @@ class Configuration(commands.Cog):
 		notifmode = notifmode[0]['notification']
 		notifstr = str(notifmode)
 		if not args:
-			await ctx.send("You're currently using **" + notifstr.capitalize() + "** Mode.\n*?notification message* tells " + botname + " to send a message when someone Stars/Hearts/Crushes a comment. Great for small servers, and shows the Karma that the user currently has.\n*?notification reaction* sends a reaction when someone Stars/Hearts/Crushes a comment. Great if you don't want to have excess notifications on Mobile, but it doesn't show the Karma the user has.")
+			await ctx.send("You're currently using **" + notifstr.capitalize() + "** Mode.\n💠 *?notification message* tells " + botname + " to send a message when someone Stars/Hearts/Crushes a comment. Great for small servers, and shows the Karma that the user currently has.\n💠 *?notification reaction* sends a reaction when someone Stars/Hearts/Crushes a comment. Great if you don't want to have excess notifications on Mobile, but it doesn't show the Karma the user has.\n💠 *?notification disabled* deactivates notifications on this server - no messages or reactions when someone Stars/Hearts/Crushes a comment. This isn't recommended unless it's being used in a very heavy server, as it leaves zero feedback that their vote has been counted.")
 		elif args[0] == "reaction" or args[0] == "reactions":
 			best.update({"notification": "reaction"}, where('serverid') == server)
-			await ctx.send("*Got it!* Reto is now on Reaction Mode.\nNext time someone reacts to a comment, said message will be reacted with " + str(okayEmoji) + " for a couple of seconds.")
+			await ctx.send("*Got it!* The server will send confirmations as a reaction.\nNext time someone reacts to a comment, said message will be reacted with " + str(okayEmoji) + " for a couple of seconds.")
 		elif args[0] == "message" or args[0] == "messages":
 			best.update({"notification": "message"}, where('serverid') == server)
-			await ctx.send("*Got it!* Reto is now on Message Mode.\nNext time someone reacts to a comment, they'll be sent a message as confirmation (which will delete itself after a couple of seconds).")
+			await ctx.send("*Got it!* The server will send confirmations as messages.\nNext time someone reacts to a comment, they'll be sent a message as confirmation (which will delete itself after a couple of seconds).")
+		elif args[0] == "disabled":
+			best.update({"notification": "disabled"}, where('serverid') == server)
+			await ctx.send("*Got it!* The server will not send confirmations.\nNext time someone reacts to a comment, it will be counted, but there'll be no confirmation of it.")
 		else:
 			await ctx.send("**Oops!** That's not a valid option.\n*?notification message* tells " + botname + " to send a message when someone Stars/Hearts/Crushes a comment. Great for small servers, and shows the Karma that the user currently has.\n*?notification reaction* sends a reaction when someone Stars/Hearts/Crushes a comment. Great if you don't want to have excess notifications on Mobile, but it doesn't show the Karma the user has.")
 		
