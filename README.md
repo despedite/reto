@@ -27,6 +27,6 @@ So, you've decided to self-host Rēto. Whether that's because you want to put Ka
 - [TinyDB](https://github.com/msiemens/tinydb): pip install tinydb
 - [aiofiles](https://github.com/Tinche/aiofiles): pip install aiofiles
 
-Go to https://discordapp.com/developers/applications/me and create an application for your bot. Create a bot account, copy the token and, on config.json, modify both the token and the rest of the settings to your heart's content. Run reto.py and invite the bot using OAuth2! Rēto will need the following permissions: &permissions=1342449744.
+Go to https://discordapp.com/developers/applications/me and create an application for your bot. Create a bot account, copy the token and, on config.json, modify the Bot Token, the Bot Owner with your user ID (you can find it by enabling Discord Settings > Appearance > Developer Mode, right-clicking your username and pressing "Copy ID") and the rest of the settings to your heart's content. Run reto.py and invite the bot using OAuth2! Rēto will need the following permissions: &permissions=1342449744.
 
 Rēto was originally made for the [Discord Hack Week 2019](https://discord.gg/hackweek).
