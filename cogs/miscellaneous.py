@@ -9,22 +9,25 @@ import os.path
 import os
 from collections import Counter
 
+db = TinyDB('json/db.json') #Database file: stores points of every user.
+cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
+srv = TinyDB('json/server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
+priv = TinyDB('json/blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
+best = TinyDB('json/bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
 
-db = TinyDB('db.json') #Database file: stores points of every user.
-cfg = TinyDB("config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
-srv = TinyDB('server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
-priv = TinyDB('blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
-best = TinyDB('bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
-
-for c in cfg:
+config = cfg.search(Query()['search'] == 'value')
+for c in config:
 	bottoken = c['bottoken']
 	botname = c['botname']
-	devname = c['devname']
+	support = c['support']
 	botver = c['botver']
 	prefix = c['prefix']
 
 
 class Miscellaneous(commands.Cog):
+	"""
+	Bonus stuff that has to do with the bot's updates, invites, privacy settings, and other extras.
+	"""
 	def __init__(self, client):
 		self.client = client
 	
@@ -33,14 +36,21 @@ class Miscellaneous(commands.Cog):
 	#------------------------
 	@commands.command(description="Simple testing command to check the bot's latency.")
 	async def ping(self, ctx):
-		"""Simple latency tester."""
-		latency = self.client.latency
-		await ctx.send(":ping_pong:  **Pong!** The latency is " + str(latency) + "s.")
+		"""Nothing but a simple latency tester."""
+		latency = str(round(self.client.latency,3))
+		await ctx.send("🏓 **Pong!** Looks like the latency is about " + latency + "s.")
 
 	@commands.command(aliases=['update', 'changelog', 'log', 'news'], description="Check the new features on the bot since last update!")
 	async def updates(self, ctx):
 		"""Check Reto's new features!"""
-		await ctx.send("**v1.4.0** Changelog\n\n❤️ You can change the name of the #best-of channel now!\nTo set it up, you can **use ?name** (recommended), ?setup on a new server, or Star (+10) any comment, and the #best-of channel will be automatically attached to Reto. After that, you can just edit the channel name as usual!\n❤️ *Finally*, you can now use Reactions to confirm your Star/Heart/Crush instead of a message.\nTo enable this, use ?notification reaction (or ?notification message to go back to the default).\n❤️ The ?setup was completely revamped! More consistent error messages, a tiny tutorial on what to do next, and it doesn't send like 8 messages to tell you everything went as it should.\n❤️ From now on, each *starred* comment will have a Star counter on Post Leaderboards and Global Post Leaderboards.\n❤️ Posts on NSFW channels will be flagged as 'NSFW' and won't be shown in the Global Post Leaderboard.\n❤️ The Now Playing status changes every 30 seconds to give you some commands to try out.\n❤️ Rēto is now un-stylized, and is now Reto (drop the ē)! The japanese letter was fun, but it became hard to search for the bot when needed.")
+		embed=discord.Embed(title="Changelog", description="Reto 1.5 - 2020/8/10\n[Check out the full, more readable changelog on Github!](https://github.com/despedite/reto/releases)", color=0x74f8dd)
+		embed.set_thumbnail(url="https://i.ibb.co/ySfQhDG/reto.png")
+		embed.add_field(name="Souped-up Leaderboards", value="The Post Leaderboards got a huge make-over! Formerly, you could only see the top 10 posts from the current server and the best server at a snail's pace, due to Discord restrictions. Now, you can see 5 posts at a time, and use the reactions on the last post to see even more posts (or remove them, to prevent spam). Aditionally, you can now @ someone on the ?plb or ?gplb commands to find out their bestest posts, whether that is globally or on said server.", inline=False)
+		embed.add_field(name="More helpful Help Command", value="Remember the previous loaded (and loathed) Help command? Well, it's FINALLY, completely re-done. Based off of [StudioMFTechnologies's work](https://gist.github.com/StudioMFTechnologies/ad41bfd32b2379ccffe90b0e34128b8b), " + botname + " now lets you choose from a list of command categories by sending a message on DMs, thus cutting down on unnecesary message clutter. You can write ?help {category} to see every command in said category.", inline=False)
+		embed.add_field(name="Personalizable Prefixes", value="Do you have too many bots in your server? Are you getting three bots replying to you whenever you write ?help? Fret not - now you can personalize which prefix " + botname + " goes by now by typing in ?prefix!  Do note that the bot's messages won't change if the server prefix does, so if " + botname + " tells you to use ?lb, for example, remember your preferred prefix and use that instead.", inline=False)
+		embed.add_field(name="One-click Activity Manager", value="This one is going to be useful to those who are self-hosting " + botname + ". You know that \"Playing\" status on the bot that constantly changes messages every 30 seconds or so? You can already personalize this rotation on config.json, but it's kind of a hassle. You have to reboot " + botname + ", change the JSON file, it's not pretty. Well, if you set the \"botowner\" variable with your User ID, you can now make use of the ?activity command! You can write your own activities with the syntax ?activity create \"{Insert activity text here}\", or delete previous ones with ?activity delete {id}. No rebooting or messing around with files required!", inline=False)
+		embed.add_field(name="In-depth User Profiles", value="The ?karma command has been upgraded and expanded into the ?profile command! (Don't worry, you can still use ?karma just like the ol' times.) Using it will now give you a variety of stats, apart from the karma total. The stats included have in them the absolute karma total, the Global and Local Leaderboard rankings, how many posts you've reacted to, and how many stars your posts have received. It's likely this list will be expanded over time, so stay on the lookout for this tab!", inline=False)
+		await ctx.send(embed=embed)
 
 	@commands.command(description='Sends an invite link for the bot to invite it to other servers.')
 	async def invite(self, ctx):
