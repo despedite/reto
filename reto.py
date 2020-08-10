@@ -10,7 +10,6 @@ import os.path
 import os
 import json
 import random
-import logging
 import dbl
 
 db = TinyDB('json/db.json') #Database file: stores points of every user.
@@ -19,15 +18,7 @@ srv = TinyDB('json/server.json') #Server-specific configuration - allows you to 
 activity = TinyDB('json/activity.json') #Activity file: the "Playing" commands the bot has.
 customprefix = TinyDB('json/prefix.json') #Prefix file: custom prefixes per server.
 
-# Code for logging
-logger = logging.getLogger('discord')
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='reto.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
-
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
 	bottoken = c['bottoken']
 	botname = c['botname']
 	support = c['support']
