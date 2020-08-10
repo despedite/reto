@@ -13,8 +13,7 @@ from collections import Counter
 cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
 activity = TinyDB('json/activity.json') #Activity file: the "Playing" commands the bot has.
 
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
 	bottoken = c['bottoken']
 	botname = c['botname']
 	support = c['support']

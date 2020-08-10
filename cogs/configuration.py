@@ -15,8 +15,7 @@ srv = TinyDB('json/server.json') #Server-specific configuration - allows you to 
 best = TinyDB('json/bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
 customprefix = TinyDB('json/prefix.json') #Prefix file: custom prefixes per server.
 
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
 	bottoken = c['bottoken']
 	botname = c['botname']
 	support = c['support']

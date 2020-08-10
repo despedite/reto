@@ -18,8 +18,7 @@ priv = TinyDB('json/blacklist.json') #Privacy Mode blacklist. Users with PM on w
 best = TinyDB('json/bestname.json') #name and type of notif
 dm = TinyDB('json/deletables.json') #Message deletion for Leaderboards.
 
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
     bottoken = c['bottoken']
     botname = c['botname']
     support = c['support']
