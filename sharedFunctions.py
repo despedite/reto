@@ -19,10 +19,9 @@ post = TinyDB('json/comments.json') #Comment leaderboard.
 priv = TinyDB('json/blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
 dm = TinyDB('json/deletables.json') #Message deletion for Leaderboards.
 
-table = db.table('_default', cache_size=None, smart_cache=True)
+table = db.table('_default', cache_size=None)
 
-config = cfg.search(Query()['search'] == 'value')
-for c in config:
+for c in cfg:
 	bottoken = c['bottoken']
 	botname = c['botname']
 	support = c['support']
