@@ -42,7 +42,7 @@ class Reaction(commands.Cog):
 		User=Query()
 		votedbefore = post.count((User.voters.any([user.id])) & (User.msgid == str(reaction.message.id)))
 		if votedbefore == 0:
-			if user.id != reaction.message.author.id: # remove when testing!
+			if ((user.id != reaction.message.author.id) and (not user.bot)): # remove when testing!
 
 				if not isinstance(reaction.emoji, str):
 					# -------------------------

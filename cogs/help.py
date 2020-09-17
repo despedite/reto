@@ -40,7 +40,7 @@ class Help(commands.Cog):
         """Gets all cogs and commands of mine."""
         if not cog:
             """Cog listing.  What more?"""
-            halp=discord.Embed(title="Reto's Commands",
+            halp=discord.Embed(title=botname + "'s Commands",
                                description="Use `!help *category*` to find out more about each command!\n_(Don't know where to start? Use ?setup to get everything going!)_\nIf you're in need of assistance, [join our support server](https://discord.gg/RAwfrty)!")
             cogs_desc = ''
             for x in self.client.cogs:
@@ -70,6 +70,7 @@ class Help(commands.Cog):
                     if x == cog: 
                         #making title
                         halp=discord.Embed(title=cog+' - Commands',description=self.client.cogs[cog].__doc__, color=discord.Color.green())
+                        print(type(halp))
                         for c in self.client.get_cog(cog).get_commands():
                             if not c.hidden: #if cog not hidden
                                 halp.add_field(name=c.name,value=c.help,inline=False)
@@ -80,6 +81,7 @@ class Help(commands.Cog):
                 else:
                     await ctx.message.add_reaction(emoji='✉')
                 await ctx.message.author.send('',embed=halp)
+                print(type(halp))
         
 def setup(client):
     client.add_cog(Help(client))

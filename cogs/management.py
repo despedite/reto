@@ -24,7 +24,7 @@ for c in cfg:
 
 class Management(commands.Cog):
 	"""
-	Commands that have to do with Reto's upkeep. Not relevant to normal users.
+	Commands that have to do with the bot's upkeep. Not relevant to normal users.
 	"""
 	def __init__(self, client):
 		self.client = client
