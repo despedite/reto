@@ -72,6 +72,15 @@ async def on_ready():
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
 
+	# Auto-update the server count to TOP.GG
+
+	dbltoken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5MTQ2NjkyMTgxMjE2NDYwOCIsImJvdCI6dHJ1ZSwiaWF0IjoxNTY1MjIwMDI1fQ.mlcCMiZ_0kPvxvLNiUbP8WLVpxsZ4Ll_zITVKkDjIMU' # set this to your DBL token
+	dblpy = dbl.DBLClient(client, dbltoken, autopost=True)
+
+	async def on_guild_post():
+		print("Server count posted successfully")
+
+
 	if botver != "":
 		game = discord.Game(botactivity[random.randrange(len(botactivity))] + " | v" + botver)
 	else:
@@ -84,7 +93,7 @@ async def on_guild_join(guild):
 	srv.insert({'serverid': guild.id, 'heart': 'plus', 'crush': 'minus', 'star': '10'})
 	for channel in guild.text_channels:
 		if channel.permissions_for(guild.me).send_messages:
-			embed=discord.Embed(title="Thank you for inviting Reto!", description="Try using the ?setup command to get started!\nIf any problems arise, [join our Discord server](https://google.com) so we can give you a hand.")
+			embed=discord.Embed(title="Thank you for inviting " + botname + "!", description="Try using the ?setup command to get started!\nIf any problems arise, [join our Discord server](https://google.com) so we can give you a hand.")
 			embed.set_thumbnail(url="https://i.ibb.co/ySfQhDG/reto.png")
 			await channel.send(embed=embed)
 		break

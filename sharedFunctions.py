@@ -120,7 +120,8 @@ async def getProfile(author, ctx, self):
 	starlist = post.search(Query().username == str(author.id))
 	starsrec = 0
 	for star in starlist:
-		starsrec += star['stars']
+		if 'stars' in star:
+			starsrec += star['stars']
 
 	#
 	# SUPPORT BADGES (WIP)
