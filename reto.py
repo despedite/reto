@@ -74,7 +74,7 @@ async def on_ready():
 
 	# Auto-update the server count to TOP.GG
 
-	dbltoken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5MTQ2NjkyMTgxMjE2NDYwOCIsImJvdCI6dHJ1ZSwiaWF0IjoxNTY1MjIwMDI1fQ.mlcCMiZ_0kPvxvLNiUbP8WLVpxsZ4Ll_zITVKkDjIMU' # set this to your DBL token
+	dbltoken = '0' # set this to your DBL token
 	dblpy = dbl.DBLClient(client, dbltoken, autopost=True)
 
 	async def on_guild_post():
