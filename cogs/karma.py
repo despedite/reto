@@ -1,33 +1,27 @@
+# Import global variables and databases.
+from definitions import db, post
+
+# Imports, database definitions and all that kerfuffle.
+
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
+import pyfiglet
 from tinydb import TinyDB, Query, where
-from tinydb.operations import add, subtract
+from tinydb.operations import add, subtract, delete
 import aiohttp        
 import aiofiles
 import os.path
 import os
 import json
-import datetime
+import random
+from datetime import datetime, date
+import logging
 
-from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile
+# sharedFunctions
+from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed, getCurrentPrefix
 
-db = TinyDB('json/db.json') #Database file: stores points of every user.
-cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
-srv = TinyDB('json/server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
-post = TinyDB('json/comments.json') #Comment leaderboard.
-priv = TinyDB('json/blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
-dm = TinyDB('json/deletables.json') #Message deletion for Leaderboards.
-
-table = db.table('_default', cache_size=None)
-
-for c in cfg:
-	bottoken = c['bottoken']
-	botname = c['botname']
-	support = c['support']
-	botver = c['botver']
-	prefix = c['prefix']
-	botowner = c['botowner']
+# ----------------------------------------------------------------------------------------------
 
 class Karma(commands.Cog):
 	"""
@@ -43,10 +37,12 @@ class Karma(commands.Cog):
 	@commands.command(aliases=['karma', 'points', 'point'], description="Check the accumulated amount of points (Karma) a given user has, among with other stats! Ping to check another user's karma account.")
 	async def profile(self, ctx, *args):
 		"""Check your (or others') profile, with info about your karma total and more!"""
+
+		prefix = await getCurrentPrefix(ctx)
 		if not args:
 			await getProfile(ctx.message.author, ctx, self)
 		elif not ctx.message.mentions:
-			await ctx.send("Invalid command! Do **?karma** to find out about your score, or @mention another user to get their score.")
+			await sendErrorEmbed(ctx, "Invalid command! Use **" + prefix + "profile** to find out about your score, or @mention another user to get their score.")
 		else:
 			await getProfile(ctx.message.mentions[0], ctx, self)
 
@@ -68,7 +64,10 @@ class Karma(commands.Cog):
 		for key, value in leaderboard: # For each value in the new, sorted DB:
 			if not args:
 				if i != 10:
-					user = await self.client.fetch_user(key)
+					user = self.client.get_user(key)
+					if not user:
+						user = await self.client.fetch_user(key)
+						print("User not found. Trying to fetch it...")
 					if i==0:
 						s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
 					elif i==1:
@@ -79,7 +78,10 @@ class Karma(commands.Cog):
 						s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
 					i = i+1
 			elif args[0] == "all":
-				user = await self.client.fetch_user(key)
+				user = self.client.get_user(key)
+				if not user:
+					user = await self.client.fetch_user(key)
+					print("User not found. Trying to fetch it...")
 				if i==0:
 					s += ("🥇 #" + str(i+1) + " - " + str(user) + " - " + str(value) +" Karma\n")
 				elif i==1:
@@ -89,8 +91,7 @@ class Karma(commands.Cog):
 				else:
 					s += ("✨ #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				i = i+1
-		embed = discord.Embed(title="Global Leaderboard", colour=discord.Colour(0xa353a9), description=s, timestamp=datetime.datetime.utcfromtimestamp(1565153513))
-		embed.set_footer(text="Your score not appearing? ?help glb", icon_url=self.client.user.avatar_url)
+		embed = discord.Embed(title="Global Leaderboard", colour=discord.Colour(0xa353a9), description=s)
 		glb = await ctx.send(embed=embed)
 
 	# --------------------------
@@ -104,7 +105,6 @@ class Karma(commands.Cog):
 		User = Query()
 		server = str(ctx.message.guild.id)
 		result = db.search(User.servers.all([server])) # doesnt work
-		print("server: " + str(server) + " result: " + str(result))
 		leaderboard = {} # Prepares an empty dictionary.
 		for x in result: # For each entry in the database:
 			leaderboard[x.get("username")] = int(x.get("points")) # ...save the user's ID and its amount of points in a new Python database.
@@ -114,7 +114,10 @@ class Karma(commands.Cog):
 		for key, value in leaderboard: # For each value in the new, sorted DB:
 			if not args:
 				if i != 10:
-					user = await self.client.fetch_user(key)
+					user = self.client.get_user(key)
+					if not user:
+						user = await self.client.fetch_user(key)
+						print("User not found. Trying to fetch it...")
 					if i==0:
 						s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
 					elif i==1:
@@ -125,7 +128,10 @@ class Karma(commands.Cog):
 						s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
 					i = i+1
 			elif args[0] == "all":
-				user = await self.client.fetch_user(key)
+				user = self.client.get_user(key)
+				if not user:
+					user = await self.client.fetch_user(key)
+					print("User not found. Trying to fetch it...")
 				if i==0:
 					s += ("🥇 #" + str(i+1) + " - " + str(user) + " - " + str(value) +" Karma\n")
 				elif i==1:
@@ -135,8 +141,7 @@ class Karma(commands.Cog):
 				else:
 					s += ("✨ #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
 				i = i+1
-		embed = discord.Embed(title="Server Leaderboard", colour=discord.Colour(0xa353a9), description=s, timestamp=datetime.datetime.utcfromtimestamp(1565153513))
-		embed.set_footer(text="Your score not appearing? ?help lb", icon_url=self.client.user.avatar_url)
+		embed = discord.Embed(title="Server Leaderboard", colour=discord.Colour(0xa353a9), description=s)
 		glb = await ctx.send(embed=embed)
 		
 	# ---------------------------------
@@ -159,7 +164,7 @@ class Karma(commands.Cog):
 		leaderboard = {} # Prepares an empty dictionary.
 		j = 0
 		for x in result: # For each entry in the database:
-			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers")), str(x.get("stars")), str(x.get("nsfw"))] # ...save the user's ID and its amount of points in a new Python database.
+			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers")), str(x.get("stars")), str(x.get("nsfw")), str(x.get("richembed"))] # ...save the user's ID and its amount of points in a new Python database.
 			j = j+1
 		
 		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)
@@ -191,7 +196,7 @@ class Karma(commands.Cog):
 		leaderboard = {} # Prepares an empty dictionary.
 		j = 0
 		for x in result: # For each entry in the database:
-			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers")), str(x.get("stars")), str(x.get("nsfw"))] # ...save the user's ID and its amount of points in a new Python database.
+			leaderboard[j] = [int(x.get("points")), str(x.get("content")), str(x.get("username")), str(x.get("embed")), str(x.get("servers")), str(x.get("stars")), str(x.get("nsfw")), str(x.get("richembed"))] # ...save the user's ID and its amount of points in a new Python database.
 			j = j+1
 		
 		leaderboard = sorted(leaderboard.items(), key = lambda x : x[1][0], reverse=True)

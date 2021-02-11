@@ -1,26 +1,27 @@
+# Import global variables and databases.
+from definitions import srv, best, customprefix, chan, botname, support
+
+# Imports, database definitions and all that kerfuffle.
+
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
+import pyfiglet
 from tinydb import TinyDB, Query, where
-from tinydb.operations import add, subtract
-import aiohttp		  
+from tinydb.operations import add, subtract, delete
+import aiohttp        
 import aiofiles
 import os.path
 import os
-from tinydb.operations import delete
+import json
+import random
+from datetime import datetime, date
+import logging
 
-db = TinyDB('json/db.json') #Database file: stores points of every user.
-cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
-srv = TinyDB('json/server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
-best = TinyDB('json/bestname.json') #Best Of name: Used to look up the Best-Of name of the channel.
-customprefix = TinyDB('json/prefix.json') #Prefix file: custom prefixes per server.
+# sharedFunctions
+from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed, getCurrentPrefix
 
-for c in cfg:
-	bottoken = c['bottoken']
-	botname = c['botname']
-	support = c['support']
-	botver = c['botver']
-	prefix = c['prefix']
+# ----------------------------------------------------------------------------------------------
 
 class Configuration(commands.Cog):
 	"""
@@ -32,8 +33,6 @@ class Configuration(commands.Cog):
 	# ---------------------
 	#	  SET UP BOT
 	# ---------------------
-
-	
 	
 	@commands.command(name="setup", pass_context=True, description="Sets up the bot, creating the necessary roles, channels and emojis for it to function. REQUIRED ROLES: Manage messages")
 	@commands.has_permissions(manage_guild=True)
@@ -43,6 +42,11 @@ class Configuration(commands.Cog):
 		loadingText = await ctx.send(str(loadingEmoji) + " Getting " + botname + " ready to go...")
 		error = False
 		creationLog = ""
+		prefix = await getCurrentPrefix(ctx)
+
+		# Register server in database!
+		# This should be unnecessary unless it's a VERY specific, debug-y case.
+		srv.upsert({'serverid': ctx.guild.id, 'heart': 'plus', 'crush': 'minus', 'star': '10', 'global': True}, Query().serverid == ctx.guild.id)
 		
 		# If the role "Curator" doesn't exist, the bot creates it.
 		try:
@@ -120,17 +124,15 @@ class Configuration(commands.Cog):
 			creationLog += "\n"
 			if creationLog != "":
 				await ctx.send(creationLog)
-			await ctx.send("*What now?*\n- Giving someone the role *Curator* on Server Settings will let them use the " + str(emoji) + " emoji to star posts. A Discord restart (CTRL+R) may be needed to see the emoji.\n- Edit the look of the default emojis using the command ?emoji to make " + botname + " your own!\n- Rename the #best-of channel to a name you like the most on Server Settings.\n- Use the command ?notification if your server is big, and you'd rather change the confirm message (e.g. Congrats! +10 points to the user) to a reaction.")
+			await ctx.send("*What now?*\n- Giving someone the role *Curator* on Server Settings will let them use the " + str(emoji) + " emoji to star posts. A Discord restart (CTRL+R) may be needed to see the emoji.\n- Edit the look of the default emojis using the command " + prefix + "emoji to make " + botname + " your own!\n- Rename the #best-of channel to a name you like the most on Server Settings.\n- Use the command " + prefix + "notification if your server is big, and you'd rather change the confirm message (e.g. Congrats! +10 points to the user) to a reaction.")
 			if support != "":
 				await ctx.send("- If any issues arise, make sure to check in on " + botname + "'s official support server, over at **" + support + "**. :heart:")
 			else:
 				await ctx.send("- Thank you very much for installing **" + botname + "**! :heart:")
 		elif error == True:
-			await ctx.send("**Oops!** Something happened and the setup couldn't be completed. (" + errorLog + ")\n- Check that there is space to create three new emojis and that the bot has sufficient permissions.\n- If you're certain everything was taken care off, try writting ?setup again.")
-			if support != "":
-				await ctx.send("- In case these issues persist, get in touch: " + support)
+			await sendErrorEmbed(ctx, "Something happened and the setup couldn't be completed. (" + errorLog + ")\n- Check that there is space to create three new emojis and that the bot has sufficient permissions.\n- If you're certain everything was taken care of, try running the setup command again.")
 		else:
-			await ctx.send("**" + botname + "** was already set up - nothing has changed!\n\n*Want some pointers?*\n- Giving someone the role *Curator* on Server Settings will let them use the " + str(emoji) + " emoji to star posts. A Discord restart (CTRL+R) may be needed to see the emoji.\n- Edit the look of the default emojis using the command ?emoji to make " + botname + " your own!\n- Rename the #best-of channel to a name you like the most on Server Settings.\n- Use the command ?notification if your server is big, and you'd rather change the confirm message (e.g. Congrats! +10 points to the user) to a reaction.")
+			await ctx.send("**" + botname + "** was already set up - nothing has changed!\n\n*Want some pointers?*\n- Giving someone the role *Curator* on Server Settings will let them use the " + str(emoji) + " emoji to star posts. A Discord restart (CTRL+R) may be needed to see the emoji.\n- Edit the look of the default emojis using the command " + prefix + "emoji to make " + botname + " your own!\n- Rename the #best-of channel to a name you like the most on Server Settings.\n- Use the command " + prefix + "notification if your server is big, and you'd rather change the confirm message (e.g. Congrats! +10 points to the user) to a reaction.")
 			if support != "":
 				await ctx.send("- If any issues arise, make sure to check in on " + botname + "'s official support server, over at **" + support + "**. :heart:")
 			else:
@@ -141,28 +143,29 @@ class Configuration(commands.Cog):
 	#		MANAGE EMOJIS
 	# -------------------------
 				
-	@commands.command(aliases=['reto', 'config', 'cfg', 'emojis'], description='Used by server admins to manage their emojis. ?emoji edit to change the look of a heart/crush/10 points, ?emoji default to restore all emojis, ?emoji best-of to change the name of #best-of. REQUIRED ROLES: Manage messages')
+	@commands.command(aliases=['reto', 'config', 'cfg', 'emojis', 'settings'], description='Used by server admins to manage their emojis. ?emoji edit to change the look of a heart/crush/10 points, ?emoji default to restore all emojis, ?emoji best-of to change the name of #best-of. REQUIRED ROLES: Manage messages')
 	@commands.has_permissions(manage_guild=True)
 	async def emoji(self, ctx, *args):
 		"""Used to manage bot emojis. REQUIRED ROLES: Manage messages"""
 		script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
 		rel_path = "../images/testimage.png"
 		path = os.path.join(script_dir, rel_path)
+		prefix = await getCurrentPrefix(ctx)
 		if not args:
-			await ctx.send("Please provide an argument!\n**?emoji edit** *name_of_emoji* - Lets you edit any of the three default emojis (10/plus/minus). Image required.\n**?emoji default** - Restores the custom emoji (10/plus/minus) to their original state.\n**?emoji best-of** - Allows you to rename the Best Of channel for personalization! Make sure to use this command instead of renaming it through Discord.")
+			await ctx.send("Please provide an argument!\n**" + prefix + "emoji edit** *name_of_emoji* - Lets you edit any of the three default emojis (10/plus/minus). Image required.\n**" + prefix + "emoji default** - Restores the custom emoji (10/plus/minus) to their original state.\n**" + prefix + "emoji best-of** - Allows you to rename the Best Of channel for personalization!")
 		elif args[0] == "best-of":
 			if not args[1]:
-				await ctx.send("No name for the #best-of channel was provided. Usage: ?emoji best-of Channel-For-Cool-Posts")
+				await sendErrorEmbed(ctx, "No name for the #best-of channel was provided. Usage: " + prefix + "emoji best-of Channel-For-Cool-Posts")
 			else:
 				server = str(ctx.message.guild.id)
 				best.upsert({'serverid': server, 'name': args[1]}, Query().serverid == server)
 				await ctx.send("The best-of channel hath now been renamed to " + args[1] + "!")
 		elif args[0] == "edit":
 			if len(args) != 2:
-				await ctx.send ("No emoji name was provided. Valid emoji names: 10/plus/minus")
+				await sendErrorEmbed(ctx, "No emoji name was provided. Valid emoji names: 10/plus/minus")
 			elif args[1] == "10":
 					if not ctx.message.attachments:
-						await ctx.send("I couldn't find an image! Upload an image along with your command (not an URL).")
+						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image along with your command (not an URL).")
 					else:
 						async with aiohttp.ClientSession() as session:
 							url = ctx.message.attachments[0].url
@@ -181,7 +184,7 @@ class Configuration(commands.Cog):
 										
 			elif args[1] == "plus":
 					if not ctx.message.attachments:
-						await ctx.send("I couldn't find an image! Upload an image along with your command (not an URL).")
+						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image along with your command (not an URL).")
 					else:
 						async with aiohttp.ClientSession() as session:
 							url = ctx.message.attachments[0].url
@@ -199,7 +202,7 @@ class Configuration(commands.Cog):
 										await ctx.send("The emoji **:plus:** has been modified.")
 			elif args[1] == "minus":
 					if not ctx.message.attachments:
-						await ctx.send("I couldn't find an image! Upload an image along with your command (not an URL).")
+						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image along with your command (not an URL).")
 					else:
 						async with aiohttp.ClientSession() as session:
 							url = ctx.message.attachments[0].url
@@ -216,7 +219,7 @@ class Configuration(commands.Cog):
 										await ctx.guild.create_custom_emoji(name="minus", image=image.read())
 										await ctx.send("The emoji **:minus:** has been modified.")
 			else:
-				await ctx.send("Invalid emoji name. Valid names: 10/plus/minus")
+				await sendErrorEmbed(ctx, "Invalid emoji name. Valid names: 10/plus/minus")
 		elif args[0] == "default":
 			try:
 				# Restore :10:
@@ -249,11 +252,9 @@ class Configuration(commands.Cog):
 						await ctx.guild.create_custom_emoji(name="minus", image=image.read())
 				await ctx.send("All emojis have been restored!")
 			except:
-				await ctx.send("An error has occurred while restoring the emojis. Check the bot's permissions and that there's space for three more emojis and try again!")
-		elif args[0] == "name":
-			await ctx.send("working on this feature")
+				await sendErrorEmbed(ctx, "An error has occurred while restoring the emojis. Check the bot's permissions and that there's space for three more emojis and try again!")
 		else:
-			await ctx.send("Invalid argument!\n**?emoji edit** *name_of_emoji* - Lets you edit any of the three default emojis (10/plus/minus). Image required.\n**?emoji default** - Restores the custom emoji (10/plus/minus) to their original state.\n**?emoji best-of** - Allows you to rename the Best Of channel for personalization! Make sure to use this command instead of renaming it through Discord.")
+			await ctx.send("Invalid argument!\n**" + prefix + "emoji edit** *name_of_emoji* - Lets you edit any of the three default emojis (10/plus/minus). Image required.\n**" + prefix + "emoji default** - Restores the custom emoji (10/plus/minus) to their original state.\n**" + prefix + "emoji best-of** - Allows you to rename the Best Of channel for personalization!")
 
 	# -------------------------
 	#	SET UP NAME MODIFYING
@@ -287,6 +288,8 @@ class Configuration(commands.Cog):
 	@commands.has_permissions(manage_guild=True)
 	async def prefix(self,ctx,*args):
 		"""Change the bot's prefix to whichever you want."""
+
+		prefix = await getCurrentPrefix(ctx)
 		if args:
 			if args[0] == "default":
 				pre = customprefix.get(Query().server == ctx.message.guild.id)
@@ -296,7 +299,49 @@ class Configuration(commands.Cog):
 				customprefix.upsert({'server': ctx.message.guild.id, 'prefix': args[0]}, Query().server == ctx.message.guild.id)
 				await ctx.send("Your prefix is now `" + args[0] + "`! You can now use it as a prefix to " + botname + "'s commands.")
 		else:		 
-			await ctx.send("Set up your prefix by writing in `?prefix *symbol*`. If you've messed up, you can restore it to default by writing `?prefix default`.\n_(Do note that the prompts that may show up on the bot won't change according to your custom prefix at this time)._")
+			await ctx.send("Set up your prefix by writing in `" + prefix + "prefix *symbol*`. If you've messed up, you can restore it to default by writing `" + prefix + "prefix default`.\n_(Bot prompts will accomodate to this new prefix, except for the command descriptions on " + prefix + "help.)._")
+
+
+	# -------------------------
+	#	 ENABLE AUTO-VOTES
+	# -------------------------
+				
+	@commands.command(aliases=['autovotes', 'autoreact', 'autoreacts', 'autoreactions'], description="Enable/disable the bot reacting to every message in a certain channel! This is useful for image channels, where you'd want to have every post already reacted to with a Heart and a Crush to encourage voting. (You can also enable this server-wide, with ?autovote server.)")
+	@commands.has_permissions(manage_guild=True)
+	async def autovote(self,ctx,*args):
+		"""Enable/disable the bot reacting to every message in a channel!"""
+
+		prefix = await getCurrentPrefix(ctx)
+		if args:
+			if args[0] == "server":
+				# Check if the channel exists.
+				result = chan.get(Query()['server'] == ctx.message.guild.id)
+				if (result and result['serverwide'] == True):
+					await ctx.send("The Autovote feature has been disabled server-wide. This does not affect channels that already have Autovote enabled - those need to be disabled manually.\nTo enable it, use " + prefix + "autovote server again.")
+					chan.update({'serverwide': False}, where('server') == ctx.message.guild.id)
+				else:
+					await ctx.send("The Autovote feature has been enabled server-wide! To disable it, use " + prefix + "autovote server again.")
+					exists = chan.count(Query().server == ctx.message.guild.id)
+					if (exists == 0):
+						chan.insert({'server': ctx.message.guild.id, 'channels': [], 'serverwide': True})
+					else:
+						chan.update({'serverwide': True}, where('server') == ctx.message.guild.id)
+		else:
+			# Check if the channel exists.
+			result = chan.get(Query()['server'] == ctx.message.guild.id)
+			if (result and ctx.message.channel.id in result['channels']):
+				await ctx.send("The Autovote feature has been disabled on **#" + ctx.message.channel.name + "** successfully.\nTo re-enable this feature, use " + prefix + "autovote on this channel again.")
+				newresult = result['channels']
+				newresult.remove(ctx.message.channel.id)
+				chan.update({'channels': newresult}, where('server') == ctx.message.guild.id)
+			else:
+				plus = discord.utils.get(ctx.message.guild.emojis, name="plus")
+				minus = discord.utils.get(ctx.message.guild.emojis, name="minus")
+				await ctx.send("The Autovote feature has been enabled on the channel **#" + ctx.message.channel.name + "**! From now on, every post in this channel will be auto-reacted to with " + str(plus) + " and " + str(minus) + ", to encourage voting.\nTo disable this feature, use " + prefix + "autovote on this channel again.")
+				exists = chan.count(Query().server == ctx.message.guild.id)
+				if (exists == 0):
+					chan.insert({'server': ctx.message.guild.id, 'channels': [], 'serverwide': False})
+				chan.update(add('channels',[ctx.message.channel.id]), where('server') == ctx.message.guild.id)
 
 	# -------------------------
 	#	CHANGE NOTIFICATIONS
@@ -305,6 +350,8 @@ class Configuration(commands.Cog):
 	@commands.command(aliases=['notif', 'notifications'], description="Change the confirm notification settings (e.g. Congrats! X person gave you a star and now you're in the Best Of channel.) from Reactions to Messages. (?notification message/?notification reaction)")
 	@commands.has_permissions(manage_guild=True)
 	async def notification(self,ctx,*args):
+
+		prefix = await getCurrentPrefix(ctx)
 		"""Change confirm notif. to messages or reactions."""
 		loadingEmoji = self.client.get_emoji(660250625107296256)
 		okayEmoji = self.client.get_emoji(660217963911184384)
@@ -319,7 +366,7 @@ class Configuration(commands.Cog):
 		notifmode = notifmode[0]['notification']
 		notifstr = str(notifmode)
 		if not args:
-			await ctx.send("You're currently using **" + notifstr.capitalize() + "** Mode.\n💠 *?notification message* tells " + botname + " to send a message when someone Stars/Hearts/Crushes a comment. Great for small servers, and shows the Karma that the user currently has.\n💠 *?notification reaction* sends a reaction when someone Stars/Hearts/Crushes a comment. Great if you don't want to have excess notifications on Mobile, but it doesn't show the Karma the user has.\n💠 *?notification disabled* deactivates notifications on this server - no messages or reactions when someone Stars/Hearts/Crushes a comment. This isn't recommended unless it's being used in a very heavy server, as it leaves zero feedback that their vote has been counted.")
+			await ctx.send("You're currently using **" + notifstr.capitalize() + "** Mode.\n💠 *" + prefix + "notification message* tells " + botname + " to send a message when someone Stars/Hearts/Crushes a comment. Great for small servers, and shows the Karma that the user currently has.\n💠 *" + prefix + "notification reaction* sends a reaction when someone Stars/Hearts/Crushes a comment. Great if you don't want to have excess notifications on Mobile, but it doesn't show the Karma the user has.\n💠 *" + prefix + "notification disabled* deactivates notifications on this server - no messages or reactions when someone Stars/Hearts/Crushes a comment. This isn't recommended unless it's being used in a very heavy server, as it leaves zero feedback that their vote has been counted.")
 		elif args[0] == "reaction" or args[0] == "reactions":
 			best.update({"notification": "reaction"}, where('serverid') == server)
 			await ctx.send("*Got it!* The server will send confirmations as a reaction.\nNext time someone reacts to a comment, said message will be reacted with " + str(okayEmoji) + " for a couple of seconds.")
@@ -330,7 +377,7 @@ class Configuration(commands.Cog):
 			best.update({"notification": "disabled"}, where('serverid') == server)
 			await ctx.send("*Got it!* The server will not send confirmations.\nNext time someone reacts to a comment, it will be counted, but there'll be no confirmation of it.")
 		else:
-			await ctx.send("**Oops!** That's not a valid option.\n*?notification message* tells " + botname + " to send a message when someone Stars/Hearts/Crushes a comment. Great for small servers, and shows the Karma that the user currently has.\n*?notification reaction* sends a reaction when someone Stars/Hearts/Crushes a comment. Great if you don't want to have excess notifications on Mobile, but it doesn't show the Karma the user has.")
+			await sendErrorEmbed(ctx, "That's not a valid option!")
 		
 
 def setup(client):

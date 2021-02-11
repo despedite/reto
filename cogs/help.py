@@ -1,29 +1,27 @@
+# Import global variables and databases.
+from definitions import botname
+
+# Imports, database definitions and all that kerfuffle.
+
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
+import pyfiglet
 from tinydb import TinyDB, Query, where
-from tinydb.operations import add, subtract
+from tinydb.operations import add, subtract, delete
 import aiohttp        
 import aiofiles
 import os.path
 import os
+import json
+import random
+from datetime import datetime, date
+import logging
 
-from sharedFunctions import printLeaderboard, createLeaderboardEmbed
+# sharedFunctions
+from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed
 
-db = TinyDB('json/db.json') #Database file: stores points of every user.
-cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
-srv = TinyDB('json/server.json') #Server-specific configuration - allows you to modify stuff like the name of the reactions, for example.
-post = TinyDB('json/comments.json') #Comment leaderboard.
-priv = TinyDB('json/blacklist.json') #Privacy Mode blacklist. Users with PM on will not have their messages logged in the comment leaderboard.
-best = TinyDB('json/bestname.json') #name and type of notif
-dm = TinyDB('json/deletables.json') #Message deletion for Leaderboards.
-
-for c in cfg:
-    bottoken = c['bottoken']
-    botname = c['botname']
-    support = c['support']
-    botver = c['botver']
-    prefix = c['prefix']
+# ----------------------------------------------------------------------------------------------
 
 class Help(commands.Cog):
     """
@@ -41,7 +39,7 @@ class Help(commands.Cog):
         if not cog:
             """Cog listing.  What more?"""
             halp=discord.Embed(title=botname + "'s Commands",
-                               description="Use `!help *category*` to find out more about each command!\n_(Don't know where to start? Use ?setup to get everything going!)_\nIf you're in need of assistance, [join our support server](https://discord.gg/RAwfrty)!")
+                               description="Use `?help *category*` to find out more about each command!\n_(Don't know where to start? Use ?setup to get everything going!)_\nIf you're in need of assistance, [join our support server](https://discord.gg/RAwfrty)!")
             cogs_desc = ''
             for x in self.client.cogs:
                 if (x != "Reaction") and (x != "Management"):
