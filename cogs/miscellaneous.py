@@ -44,6 +44,9 @@ class Miscellaneous(commands.Cog):
 		"""Check Reto's new features!"""
 
 		prefix = await getCurrentPrefix(ctx)
+		defaultPlus  = self.client.get_emoji(809578589439393822)
+		defaultMinus = self.client.get_emoji(809578623732023337)
+		defaultStar  = self.client.get_emoji(809578548418969620)
 		embed=discord.Embed(title="Changelog", description="Reto 1.6 - 2021/2/12\n[Check out the full, more readable changelog on Github!](https://github.com/despedite/reto/releases)", color=0x74f8dd)
 		embed.set_thumbnail(url="https://i.ibb.co/ySfQhDG/reto.png")
 		embed.add_field(name="Your data is secure", value="This update brings with it one of the most overdue features, and a central focus of it: your data with Reto has graduated from JSON school to RETO uni, and is now fully encrypted! Not even the developers can snoop around and check on your comments, profile info, and the like.", inline=False)
@@ -53,6 +56,7 @@ class Miscellaneous(commands.Cog):
 		embed.add_field(name="Souped-up Best Of Messages", value="Ever wanted to star a post including an embed (like a tweet, or YouTube video), but the final embed on the channel came out blank? Say no more - now we save that embed, re-format it a bit, and display some of its info on both the Best Of channel and post leaderboards.", inline=False)
 		embed.add_field(name="Reaction Cooldown, Begone", value="Wanted to react to a post after a good while, but the bot wouldn't even flinch because the message was \"too old\"? Well, we migrated to a new system that now allows you to react to posts made waaaaay back! Try it out - star a comment from 2019, see what happens!", inline=False)
 		embed.add_field(name="Autovotes!", value="When Reto started, it boasted itself as \"Reddit's Karma system, for Discord.\" This was a weird comparison, seeing how Reddit would have each comment marked with upvotes and downvotes, while you had to manually add them in on Reto. Well, enabling " + prefix + "autovote server or channel wide, now you can emulate that! This dandy little feature will make Reto auto-react to every message sent with a Plus and a Minus, to encourage voting. Perfect for meme channels.", inline=False)
+		embed.add_field(name="Updated Reaction Emoji", value="Originally, the Star and Heart emojis would look SUSPICIOUSLY similar to the ⭐ and ❤️ default emotes, with just different shades to differentiate them. This means a _high_ amount of people would add the standard heart emoji to a post expecting to react to it, and nothing would happen. Now the emoji look like this: " + str(defaultStar) + " | " + str(defaultPlus) + " | " + str(defaultMinus) + ", to differentiate them better! If you already have a server using the old emoji and want these ones, run " + prefix + "emoji default!", inline=False)
 		embed.add_field(name="And more stuff under the hood...", value="That's not all, of course! We've also spruced things up on the backend, cleaned things that were irrelevant years ago, and made QOL changes (for example, bot errors look way nicer, and if you have a custom " + prefix + "prefix, now the messages Reto sends will show it instead of the default \"?\").", inline=False)
 		embed.add_field(name="A note for Bot Owners", value="The migration to an encrypted filesystem is MANUAL. If you update to 1.6 or higher, you might get a warning message asking you to run a piece of code to encrypt your database - make sure to do so if you'd like to update!", inline=True)
 		await ctx.send(embed=embed)
