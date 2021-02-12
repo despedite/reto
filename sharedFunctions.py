@@ -562,7 +562,6 @@ async def reactionAdded(bot, payload):
 						else:
 							print("Privacy Mode ENABLED!")
 					else:
-						voters = await users().flatten()
 						post.update(add('points',10), where('msgid') == valuetwo)
 						post.update(add('voters',[user.id]), where('msgid') == valuetwo)
 						post.update(add('stars',1), where('msgid') == valuetwo)
