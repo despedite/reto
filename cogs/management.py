@@ -121,12 +121,15 @@ async def showActivityList(ctx):
 	result = activity.all()
 	s = ""
 
-	if result:
-		for value in result: 
-			s += ("ID: " + str(value.doc_id) + " - " + value["activity"] + "\n")
-	embed = discord.Embed(title="List of Activities", colour=discord.Colour(0xa353a9), description=s)
-	embed.set_footer(text="Add more with " + prefix + "activity create '[text]', or remove one with " + prefix + "activity delete [id].")
-	return embed
+	try:
+		if result:
+			for value in result: 
+				s += ("ID: " + str(value.doc_id) + " - " + value["activity"] + "\n")
+		embed = discord.Embed(title="List of Activities", colour=discord.Colour(0xa353a9), description=s)
+		embed.set_footer(text="Add more with " + prefix + "activity create '[text]', or remove one with " + prefix + "activity delete [id].")
+		return embed
+	except Exception as e:
+		await sendErrorEmbed(ctx, "Can't show the activity list! (Too many activities?)")
 			
 def setup(client):
 	client.add_cog(Management(client))
