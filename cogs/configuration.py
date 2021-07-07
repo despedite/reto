@@ -165,7 +165,7 @@ class Configuration(commands.Cog):
 				await sendErrorEmbed(ctx, "No emoji name was provided. Valid emoji names: 10/plus/minus")
 			elif args[1] == "10":
 					if not ctx.message.attachments:
-						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image along with your command (not an URL).")
+						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image or an URL along with your command.")
 					else:
 						async with aiohttp.ClientSession() as session:
 							url = ctx.message.attachments[0].url
@@ -177,14 +177,17 @@ class Configuration(commands.Cog):
 									await f.close()
 									rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
 									with open("images/testimage.png", "rb") as image:
-										emojisearch = discord.utils.get(ctx.guild.emojis, name="10")
-										await emojisearch.delete()
-										await ctx.guild.create_custom_emoji(name="10", image=image.read())
-										await ctx.send("The emoji **:10:** has been modified.")
+										if not (os.stat('images/testimage.png').st_size > 256000):
+											emojisearch = discord.utils.get(ctx.guild.emojis, name="10")
+											await emojisearch.delete()
+											await ctx.guild.create_custom_emoji(name="10", image=image.read())
+											await ctx.send("The emoji **:10:** has been modified.")
+										else:
+											await sendErrorEmbed(ctx, "Your image is too big! Discord emojis have to be 256kb in size or smaller.")
 										
 			elif args[1] == "plus":
 					if not ctx.message.attachments:
-						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image along with your command (not an URL).")
+						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image or an URL along with your command.")
 					else:
 						async with aiohttp.ClientSession() as session:
 							url = ctx.message.attachments[0].url
@@ -196,13 +199,17 @@ class Configuration(commands.Cog):
 									await f.close()
 									rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
 									with open("images/testimage.png", "rb") as image:
-										emojisearch = discord.utils.get(ctx.guild.emojis, name="plus")
-										await emojisearch.delete()
-										await ctx.guild.create_custom_emoji(name="plus", image=image.read())
-										await ctx.send("The emoji **:plus:** has been modified.")
+										if not (os.stat('images/testimage.png').st_size > 256000):
+											emojisearch = discord.utils.get(ctx.guild.emojis, name="plus")
+											await emojisearch.delete()
+											await ctx.guild.create_custom_emoji(name="plus", image=image.read())
+											await ctx.send("The emoji **:plus:** has been modified.")
+										else:
+											await sendErrorEmbed(ctx, "Your image is too big! Discord emojis have to be 256kb in size or smaller.")
+										
 			elif args[1] == "minus":
 					if not ctx.message.attachments:
-						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image along with your command (not an URL).")
+						await sendErrorEmbed(ctx, "Couldn't find an image! Upload an image or an URL along with your command.")
 					else:
 						async with aiohttp.ClientSession() as session:
 							url = ctx.message.attachments[0].url
@@ -214,10 +221,14 @@ class Configuration(commands.Cog):
 									await f.close()
 									rolesearch = discord.utils.get(ctx.guild.roles, name="Curator")
 									with open("images/testimage.png", "rb") as image:
-										emojisearch = discord.utils.get(ctx.guild.emojis, name="minus")
-										await emojisearch.delete()
-										await ctx.guild.create_custom_emoji(name="minus", image=image.read())
-										await ctx.send("The emoji **:minus:** has been modified.")
+										if not (os.stat('images/testimage.png').st_size > 256000):
+											emojisearch = discord.utils.get(ctx.guild.emojis, name="minus")
+											await emojisearch.delete()
+											await ctx.guild.create_custom_emoji(name="minus", image=image.read())
+											await ctx.send("The emoji **:minus:** has been modified.")
+										else:
+											await sendErrorEmbed(ctx, "Your image is too big! Discord emojis have to be 256kb in size or smaller.")
+										
 			else:
 				await sendErrorEmbed(ctx, "Invalid emoji name. Valid names: 10/plus/minus")
 		elif args[0] == "default":
