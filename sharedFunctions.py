@@ -343,7 +343,8 @@ async def sendErrorEmbed(ctxChannel, description):
 		title = "Oopsie Woopsie! UwU. We made a fuggy wuggy!!"
 	embed=discord.Embed(title=title, description=description, color=0xfe2c2c)
 	embed.set_footer(text="Need help? Reach us at our support server! " + support)
-	await ctxChannel.send(embed=embed)
+	errorEmbed = await ctxChannel.send(embed=embed)
+	return errorEmbed
 
 # TO-DO: Optimize.
 # This is RAW, man.
@@ -413,8 +414,26 @@ async def reactionAdded(bot, payload):
 						emberino=discord.Embed(description=contenido)
 
 					emberino.set_author(name=autor, url=messageurl, icon_url=foto)
+					
 					if(len(message.attachments) > 0):
-						emberino.set_image(url=imagen)
+						validAttachment = False
+						# Check for unsupported attachments
+						for e in ['jpg','jpeg','png','webp','gif']:
+							if imagen[-len(e)-1:]==f'.{e}':
+								emberino.set_image(url=imagen)
+								validAttachment = True
+						if validAttachment == False:
+							postIncludes = "an attachment"
+							for e in ['mp4', 'mov']:
+								if imagen[-len(e)-1:]==f'.{e}':
+									postIncludes = "a video"
+							for e in ['wav', 'mp3', 'ogg']:
+								if imagen[-len(e)-1:]==f'.{e}':
+									postIncludes = "an audio file"
+							emberino.set_footer(text="This post includes " + postIncludes + "! Click on the username to see the original.")
+						if(len(message.attachments) > 1 and validAttachment == True):
+							emberino.set_footer(text="This post includes more than one image! Click on the username to see the original.")
+					
 
 					# Parsing embeds:
 
@@ -538,7 +557,7 @@ async def reactionAdded(bot, payload):
 						channelformsg = message.channel
 						await sendErrorEmbed(channelformsg, "The channel couldn't be sent to the Best Of channel, for some reason. Could you double-check it exists?")
 					else:
-						if (postexists == 0):
+						if (postexists == 0) and (contenido or message.embeds or message.attachments):
 							await channel.send(embed=emberino)
 
 					# Log post for post leaderboard
@@ -595,6 +614,8 @@ async def reactionAdded(bot, payload):
 					if (notifmode != "reaction") and (notifmode != "disabled") and (postexists == 0):
 						send = await channel.send("Congrats, **{}**! Your post will be forever immortalized in the **#{}** channel. You now have {} points. (+10)".format(message.author.name,bestofname.name,result.get('points')))
 					
+					if not (contenido or message.embeds or message.attachments):
+						noMessage = await sendErrorEmbed(channel, 'No message was sent to the **#' + bestofname.name + '** channel. Chances are it\'s an unsupported type of file.')
 					# Delete said message
 					if notifmode == "reaction":
 						await asyncio.sleep(1) 
@@ -603,6 +624,9 @@ async def reactionAdded(bot, payload):
 					if (notifmode != "reaction") and (notifmode != "disabled"):
 						await asyncio.sleep(3) 
 						await send.delete()
+					if not (contenido or message.embeds or message.attachments):
+						await asyncio.sleep(3) 
+						await noMessage.delete()
 
 			# -------------------------
 			#	  REACTION = :PLUS:
