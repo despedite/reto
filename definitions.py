@@ -7,13 +7,16 @@ from os.path import exists
 from random import *
 import string
 import sys
+import os
 
 # Boolean to string parser.
 from distutils.util import strtobool
 
 def createConfigFile():
 	print("We haven't detected a config file! Let's do some setup before we get started.\n")
-
+	
+	if not exists("json/"):
+		os.mkdir('json')
 	cfg = TinyDB("json/config.json") #Creates the config file.
 
 	# Encryption key
@@ -89,7 +92,7 @@ def createConfigFile():
 	# Insert all that data!
 	cfg.insert({'key': pwdInput, 'bottoken': tknInput, "botname": nmeInput, "prefix": prxInput, "support": ssvInput, "botver": verInput, "botowner": ownInput, "debug": dbgInput})
 
-if not exists("json/config.json"):
+if not exists("json/") or not exists("json/config.json"):
 	createConfigFile()
 
 # Unencrypted! This NEEDS to be editable by a simple text editor.
