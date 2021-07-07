@@ -1,5 +1,5 @@
 # Import global variables and databases.
-from definitions import botname, botowner, activity, post, priv
+from definitions import botname, botowner, activity, post, priv, db
 
 # Imports, database definitions and all that kerfuffle.
 
@@ -80,7 +80,75 @@ class Management(commands.Cog):
 				glb = await ctx.send(embed=embed)
 		else:
 			await sendErrorEmbed(ctx, "Looks like you don't have permission to do this?\n_Are you hosting " + botname + "? If so make sure your User ID is on the **botowner** array on the config.json file!_")
-	
+
+	#-----------------
+	#   EDIT KARMA
+	#-----------------
+	@commands.command(aliases=['editkarma', 'karmaedit'])
+	async def rosebud(self,ctx,*args):
+		"""[BOT ADMIN ONLY] Add or subtract karma from an user."""
+
+		prefix = await getCurrentPrefix(ctx)
+		isOwner = False
+		for x in botowner:
+			if (int(ctx.message.author.id) == int(x)):
+				isOwner = True
+
+		if isOwner:
+			if not args:
+				await sendErrorEmbed(ctx, "Hey! You should probably tag someone first.\nIntended usage: " + prefix + "rosebud `[user]` `[amount of karma]` `[set/add/subtract]`")
+				return
+			if not ctx.message.mentions:
+				await sendErrorEmbed(ctx, "You forgot to add in an user!")
+				return
+			else:
+				user = ctx.message.mentions[0]
+				if len(args) < 2:
+					await sendErrorEmbed(ctx, "You haven't entered a karma amount!")
+					return
+				if args[1].isdigit():
+					karma = int(args[1])
+					value = ""
+					if len(args) < 3:
+						await sendErrorEmbed(ctx, "You have to enter an argument! `[set/add/subtract]`")
+						return	
+					# this is a stupid way to write it
+					if args[2] == "add":
+						value = "add"
+					elif args[2] == "subtract":
+						value = "subtract"
+					elif args[2] == "set":
+						value = "set"
+					else:
+						await sendErrorEmbed(ctx, "That's not a valid argument! `[set/add/subtract]`")
+						return
+					if args[2] and value:
+						# DO THE THING
+						exists = db.count(Query().username == str(user.id))
+						server = str(ctx.message.guild.id)
+						if exists == 0:
+							if value == "add" or value == "set":
+								db.insert({'username': str(user.id), 'points': karma, 'servers': [server], 'modifiedkarma': True})
+							elif value == "subtract":
+								db.insert({'username': str(user.id), 'points': -karma, 'servers': [server], 'modifiedkarma': True})
+						else:
+							if value == "add":
+								db.update(add('points',karma), where('username') == str(user.id))
+							elif value == "subtract":
+								db.update(subtract('points',karma), where('username') == str(user.id))
+							elif value == "set":
+								db.update({'points': karma}, where('username') == str(user.id))
+							db.update({'modifiedkarma': True}, where('username') == str(user.id))
+						result = db.get(Query()['username'] == str(user.id))
+						
+						await ctx.send('Great! ' + user.name + "'s new karma total is " + str(result.get('points')) + ".")
+						
+				else:
+					await sendErrorEmbed(ctx, "That's not a valid amount of karma!")
+					return
+		else:
+			await sendErrorEmbed(ctx, "Looks like you don't have permission to do this?\n_Are you hosting " + botname + "? If so make sure your User ID is on the **botowner** array on the config.json file!_")	
+
 	#-------------------------
 	#      POST DELETER
 	#-------------------------

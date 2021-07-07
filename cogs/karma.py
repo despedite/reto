@@ -62,34 +62,26 @@ class Karma(commands.Cog):
 		s = ""
 		i = 0
 		for key, value in leaderboard: # For each value in the new, sorted DB:
-			if not args:
-				if i != 10:
-					user = self.client.get_user(key)
-					if not user:
-						user = await self.client.fetch_user(key)
-						print("User not found. Trying to fetch it...")
-					if i==0:
-						s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
-					elif i==1:
-						s += ("🥈 " + str(user) + " - " + str(value) +" Karma\n")
-					elif i==2:
-						s += ("🥉 " + str(user) + " - " + str(value) +" Karma\n")
-					else:
-						s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
-					i = i+1
-			elif args[0] == "all":
+			if i != 10:
 				user = self.client.get_user(key)
 				if not user:
 					user = await self.client.fetch_user(key)
 					print("User not found. Trying to fetch it...")
+				# Check if someone is a dirty lil cheater
+				userData = db.search(Query().username == key)
+				rosebudemblem = ""
+				if len(userData) >= 1:
+					if "modifiedkarma" in userData[0]:
+						rosebudemote = self.client.get_emoji(862441238267297834)
+						rosebudemblem = str(rosebudemote)
 				if i==0:
-					s += ("🥇 #" + str(i+1) + " - " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥇 " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				elif i==1:
-					s += ("🥈 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥈 " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				elif i==2:
-					s += ("🥉 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥉 " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				else:
-					s += ("✨ #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
+					s += ("✨ " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				i = i+1
 		embed = discord.Embed(title="Global Leaderboard", colour=discord.Colour(0xa353a9), description=s)
 		glb = await ctx.send(embed=embed)
@@ -104,7 +96,7 @@ class Karma(commands.Cog):
 		db.clear_cache()
 		User = Query()
 		server = str(ctx.message.guild.id)
-		result = db.search(User.servers.all([server])) # doesnt work
+		result = db.search(User.servers.all([server]))
 		leaderboard = {} # Prepares an empty dictionary.
 		for x in result: # For each entry in the database:
 			leaderboard[x.get("username")] = int(x.get("points")) # ...save the user's ID and its amount of points in a new Python database.
@@ -112,34 +104,26 @@ class Karma(commands.Cog):
 		s = ""
 		i = 0
 		for key, value in leaderboard: # For each value in the new, sorted DB:
-			if not args:
-				if i != 10:
-					user = self.client.get_user(key)
-					if not user:
-						user = await self.client.fetch_user(key)
-						print("User not found. Trying to fetch it...")
-					if i==0:
-						s += ("🥇 " + str(user) + " - " + str(value) +" Karma\n")
-					elif i==1:
-						s += ("🥈 " + str(user) + " - " + str(value) +" Karma\n")
-					elif i==2:
-						s += ("🥉 " + str(user) + " - " + str(value) +" Karma\n")
-					else:
-						s += ("✨ " + str(user) + " - " + str(value) +" Karma\n")
-					i = i+1
-			elif args[0] == "all":
+			if i != 10:
 				user = self.client.get_user(key)
 				if not user:
 					user = await self.client.fetch_user(key)
 					print("User not found. Trying to fetch it...")
+				# Check if someone is a dirty lil cheater
+				userData = db.search(Query().username == key)
+				rosebudemblem = ""
+				if len(userData) >= 1:
+					if "modifiedkarma" in userData[0]:
+						rosebudemote = self.client.get_emoji(862441238267297834)
+						rosebudemblem = str(rosebudemote)
 				if i==0:
-					s += ("🥇 #" + str(i+1) + " - " + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥇 " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				elif i==1:
-					s += ("🥈 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥈 " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				elif i==2:
-					s += ("🥉 #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
+					s += ("🥉 " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				else:
-					s += ("✨ #" + str(i+1) + " - "  + str(user) + " - " + str(value) +" Karma\n")
+					s += ("✨ " + str(user) + " - " + str(value) +" Karma " + rosebudemblem + "\n")
 				i = i+1
 		embed = discord.Embed(title="Server Leaderboard", colour=discord.Colour(0xa353a9), description=s)
 		glb = await ctx.send(embed=embed)

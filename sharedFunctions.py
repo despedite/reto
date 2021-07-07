@@ -38,7 +38,7 @@ async def getProfile(author, ctx, self):
 	result = db.get(Query()['username'] == searchvalor)
 
 	#
-	# CONSEGUIR VALOR EN LA GLB
+	# GET VALUE IN GLB
 	#
 
 	if not isinstance(ctx.message.channel, discord.channel.DMChannel):
@@ -59,7 +59,7 @@ async def getProfile(author, ctx, self):
 			leadervalue += 1
 
 	#
-	# CONSEGUIR VALOR EN LA LLB
+	# GET VALUE IN LLB
 	#
 
 	if not isinstance(ctx.message.channel, discord.channel.DMChannel):
@@ -96,7 +96,7 @@ async def getProfile(author, ctx, self):
 		leaderemblem = " "
 
 	#
-	# REVISAR ESTATUS DE CURATOR
+	# CHECK IF CURATOR
 	#
 
 	curatoremblem = ""
@@ -107,7 +107,7 @@ async def getProfile(author, ctx, self):
 			curatoremblem = str(curatoremote)
 
 	#
-	# REVISAR ESTATUS DE BOTOWNER
+	# CHECK IF BOTOWNER
 	#
 
 	botemblem = ""
@@ -115,6 +115,16 @@ async def getProfile(author, ctx, self):
 		if (int(author.id) == int(x)):
 			botemblem = "👨‍💻"
 
+	#
+	# CHECK IF ROSEBUD USED ON USER
+	#
+
+	rosebudemblem = ""
+	if result:
+		if "modifiedkarma" in result:
+			rosebudemote = self.client.get_emoji(862441238267297834)
+			rosebudemblem = str(rosebudemote)
+	
 	#
 	# POINTS SENT
 	#
@@ -142,7 +152,7 @@ async def getProfile(author, ctx, self):
 	# SEND THE EMBED
 	#
 
-	embed=discord.Embed(title=author.name + ' ' + leaderemblem + str(curatoremblem) + botemblem)
+	embed=discord.Embed(title=author.name + ' ' + leaderemblem + str(curatoremblem) + botemblem + rosebudemblem)
 	embed.set_thumbnail(url=author.avatar_url)
 	if result:
 		embed.add_field(name="Karma", value=result.get('points'), inline=True)
