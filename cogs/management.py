@@ -1,5 +1,5 @@
 # Import global variables and databases.
-from definitions import botname, botowner, activity, post, priv, db
+from definitions import botname, botowner, activity, post, priv, db, ephemeral
 
 # Imports, database definitions and all that kerfuffle.
 
@@ -154,14 +154,19 @@ class Management(commands.Cog):
 	#-------------------------
 	@tasks.loop(hours=12)
 	async def commentDeleter(self):
-		# Running Reto in an unverified bot (100 servers or less)? You can get rid of this function.
-		if self.isDeletingComments == False and self.isFirstTime == False:
+		if self.isFirstTime:
+			self.isFirstTime = False
+			return
+		if not ephemeral:
+			return
+		if self.isDeletingComments == False and self.isFirstTime == False and ephemeral:
 			print("Running the COMMENT DELETER...\nThis checks every 12 hours for saved comments that are 30 days old and deletes them from the comments.reto file,\nper Discord's verification rules. Do not stop " + botname + " while this is running!")
-			postLength = len(post)
 			self.isDeletingComments = True # Don't run it twice at the same time!
 			i = 0
 			totalDeleted = 0
-			for postelement in post:
+			evalPosts = post.all()
+			postLength = len(evalPosts)
+			for postelement in evalPosts:
 				i = i + 1
 				print("Scanning the comments... (" + str(i) + "/" + str(postLength) + ")", end="\r")
 				if not "timestamp" in postelement:
@@ -180,7 +185,6 @@ class Management(commands.Cog):
 						post.remove(where('msgid') == postelement['msgid'])
 			print("\nAll set! " + str(totalDeleted) + " comments were deleted.\n")
 			self.isDeletingComments = False
-		self.isFirstTime = False
 
 async def showActivityList(ctx):
 
