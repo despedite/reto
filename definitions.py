@@ -20,7 +20,7 @@ def createConfigFile():
 	cfg = TinyDB("json/config.json") #Creates the config file.
 
 	# Encryption key
-	print("Enter the ENCRYPTION KEY (1/8)")
+	print("Enter the ENCRYPTION KEY (1/9)")
 	print("The bot automatically encrypts its databases, so not you nor anyone else can access them. This is the encryption key the bot uses to encrypt said databases. This string can be anything, but it's recommended to use a strong, randomly-chosen password, just in case. DO NOT SHARE THIS KEY.")
 	# Generate a secure password.
 	characters = string.ascii_letters + string.punctuation  + string.digits
@@ -31,14 +31,14 @@ def createConfigFile():
 		pwdInput = randomPassword
 	
 	# Bot token
-	print("\nEnter BOT TOKEN (2/8)")
+	print("\nEnter BOT TOKEN (2/9)")
 	print("This is the bot token Discord generates for you when you've created a bot on the Discord Developer Portal. Here's an in-depth guide on how to create a Discord bot, if you haven't done so already. DO NOT SHARE THIS TOKEN.")
 	tknInput = input("")
 	if not tknInput:
 		sys.exit()
 
 	# Bot name
-	print("\nEnter BOT NAME (3/8)")
+	print("\nEnter BOT NAME (3/9)")
 	print("Replaces all instances of the bot's name (in this case, Reto) to its own. Change this if you'll name your bot anything other than Reto.")
 	print("(default: Reto)")
 	nmeInput = input("")
@@ -46,7 +46,7 @@ def createConfigFile():
 		nmeInput = "Reto"
 	
 	# Prefix
-	print("\nEnter PREFIX (4/8):")
+	print("\nEnter PREFIX (4/9):")
 	print("The default prefix Reto uses on DMs and all servers that haven't set their own custom prefix.")
 	print("(default: ?)")
 	prxInput = input("")
@@ -54,7 +54,7 @@ def createConfigFile():
 		prxInput = "?"
 	
 	# Support server
-	print("\nEnter SUPPORT SERVER (5/8):")
+	print("\nEnter SUPPORT SERVER (5/9):")
 	print("Links to the support server shown on the ?setup command, error messages, et cetera.")
 	print("(default: https://discord.gg/rrszpTN)")
 	ssvInput = input("")
@@ -62,7 +62,7 @@ def createConfigFile():
 		ssvInput = "https://discord.gg/rrszpTN"
 	
 	# Bot version
-	print("\nEnter BOT VERSION (6/8):")
+	print("\nEnter BOT VERSION (6/9):")
 	print("The bot's current version. Appears on its Activities and other places.")
 	print("(default: 1.6a)")
 	verInput = input("")
@@ -70,7 +70,7 @@ def createConfigFile():
 		verInput = "1.6a"
 
 	# Bot owner
-	print("\nEnter BOT OWNER (7/8):")
+	print("\nEnter BOT OWNER (7/9):")
 	print("An array of the people that are the bot's developers. You should fill this out with your user ID to gain access to certain bot owner specific commands (and a badge on your ?profile).")
 	print("(enter IDs one after the other, press ENTER on an empty new line when you're done)")
 	ownInput = []
@@ -81,8 +81,16 @@ def createConfigFile():
 		ownInput.append(input(""))
 	ownInput.remove(ownInput[len(ownInput)-1])
 
+	# Ephemeral
+	print("\nEnter EPHEMERAL STORAGE (8/9):")
+	print("Discord asks for people to delete the posts they have on users after 30 days. Leaving this on means that Reto will periodically check every 12 hours to delete old posts. If this is a private bot, you can turn this off.")
+	print("(True/False, default/invalid: True)")
+	dbgInput = input("")
+	if (dbgInput!= "True" or "False") or not dbgInput:
+		dbgInput = "True"
+
 	# Debug
-	print("\nEnter DEBUG (8/8):")
+	print("\nEnter DEBUG (9/9):")
 	print("Boolean (True/False) that's useful if you wanna test certain commands alone. Its main use is letting you vote on your own posts. Make sure this is set as 'False' when you're done coding.")
 	print("(True/False, default/invalid: False)")
 	dbgInput = input("")
@@ -99,15 +107,17 @@ if not exists("json/") or not exists("json/config.json"):
 cfg = TinyDB("json/config.json") #Config file: stores configurations for the bot. Modify at your heart's content!
 
 for c in cfg:
-	bottoken = c['bottoken']
-	botname  = c['botname']
-	support  = c['support']
-	botver   = c['botver']
-	prefix   = c['prefix']
-	botowner = c['botowner']
-	key 	 = c['key']
-	debug    = c['debug']
-	debug    = bool(strtobool(debug)) # Otherwhise, it's a string.
+	bottoken  = c['bottoken']
+	botname   = c['botname']
+	support   = c['support']
+	botver    = c['botver']
+	prefix    = c['prefix']
+	botowner  = c['botowner']
+	key 	  = c['key']
+	ephemeral = c['ephemeral']
+	ephemeral = bool(strtobool(ephemeral)) # Otherwhise, it's a string.
+	debug     = c['debug']
+	debug     = bool(strtobool(debug)) # Otherwhise, it's a string.
 
 
 
