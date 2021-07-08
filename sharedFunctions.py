@@ -259,11 +259,13 @@ async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel,
 		await ctxMessage.remove_reaction(checkM, botid)
 
 async def createLeaderboardEmbed(self, values, numero, ceronumero, ctx, ctxMessage, ctxChannel, lbEmbed, page):
-
 	emoji = discord.utils.get(ctxMessage.guild.emojis, name="plus")
 	guild = ctxMessage.guild
 
-	username = self.client.get_user(int(values[2]))
+	username = self.client.get_user(str(values[2]))
+	if not username:
+		username = await self.client.fetch_user(str(values[2]))
+		print("User not found. Trying to fetch it...")
 	guild = self.client.get_guild(int(values[4]))
 	if username and guild:
 		contenido=values[1]
