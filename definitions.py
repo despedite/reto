@@ -85,9 +85,9 @@ def createConfigFile():
 	print("\nEnter EPHEMERAL STORAGE (8/9):")
 	print("Discord asks for people to delete the posts they have on users after 30 days. Leaving this on means that Reto will periodically check every 12 hours to delete old posts. If this is a private bot, you can turn this off.")
 	print("(True/False, default/invalid: True)")
-	dbgInput = input("")
-	if (dbgInput!= "True" or "False") or not dbgInput:
-		dbgInput = "True"
+	ephInput = input("")
+	if (ephInput!= "True" or "False") or not ephInput:
+		ephInput = "True"
 
 	# Debug
 	print("\nEnter DEBUG (9/9):")
@@ -98,7 +98,7 @@ def createConfigFile():
 		dbgInput = "False"
 	
 	# Insert all that data!
-	cfg.insert({'key': pwdInput, 'bottoken': tknInput, "botname": nmeInput, "prefix": prxInput, "support": ssvInput, "botver": verInput, "botowner": ownInput, "debug": dbgInput})
+	cfg.insert({'key': pwdInput, 'bottoken': tknInput, "botname": nmeInput, "prefix": prxInput, "support": ssvInput, "botver": verInput, "botowner": ownInput, "ephemeral": ephInput, "debug": dbgInput})
 
 if not exists("json/") or not exists("json/config.json"):
 	createConfigFile()
