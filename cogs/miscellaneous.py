@@ -19,7 +19,7 @@ from datetime import datetime, date
 import logging
 
 # sharedFunctions
-from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed, getCurrentPrefix
+from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed, getCurrentPrefix, exportData
 
 # ----------------------------------------------------------------------------------------------
 
@@ -157,6 +157,8 @@ class Miscellaneous(commands.Cog):
 				await ctx.message.add_reaction(emoji='✉')
 				directmessage = await ctx.message.author.send(embed=embed)
 				await directmessage.add_reaction(emoji='💣')
+			elif args[1] == "export":
+				await exportData(str(ctx.message.author.id))
 		else:
 			await sendErrorEmbed(ctx,"Invalid argument. Try not adding any to see all the available ones!")
 			

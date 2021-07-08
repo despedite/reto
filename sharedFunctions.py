@@ -348,6 +348,30 @@ async def sendErrorEmbed(ctxChannel, description):
 	errorEmbed = await ctxChannel.send(embed=embed)
 	return errorEmbed
 
+async def exportData(userId):
+	dbTable = [
+		{
+			'query': db.get(Query()['username'] == userId),
+			'name': 'profile'
+		},
+		{
+			'query': post.get(Query()['username'] == userId),
+			'name': 'comments'
+		},
+		{
+			'query': priv.get(Query()['username'] == int(userId)),
+			'name': 'privacy'
+		}
+	]
+
+	if not exists('export/'):
+		os.mkdir('export')
+	
+	for table in dbTable:
+		if table:
+			with open("export/" + table['name'] + "_" + userId + ".json", "w") as writeJson:
+				writeJson.write(str(table['query']))
+
 # TO-DO: Optimize.
 # This is RAW, man.
 
