@@ -19,7 +19,7 @@ from datetime import datetime, date
 import logging
 
 # sharedFunctions
-from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed, getCurrentPrefix
+from sharedFunctions import sendErrorEmbed, getCurrentPrefix, formatMessage
 
 # ----------------------------------------------------------------------------------------------
 
@@ -400,5 +400,67 @@ class Configuration(commands.Cog):
 		best.upsert({'channelid': channel.id}, Query().serverid == server)
 		await ctx.send("**Gotcha!** The new Best Of channel is now " + channel.mention + ".")
 
+	# -------------------------
+	#	CHANGE NOTIFICATION MESSAGES
+	# -------------------------
+				
+	@commands.command(aliases=['nm'], description="If the #best-of channel stops working properly, you can reattach it with this command! Enter the channel as an argument.")
+	@commands.has_permissions(manage_guild=True)
+	async def notificationmessages(self, ctx, *args):
+
+		errormessage = """
+		\n\n**Argument 1:** Message type
+		\n`[plus/minus/10/10repeat/default]`
+		\n`10repeat` represents the message that appears when a message is starred multiple times.
+		\n`default` will reset all of your set messages!
+		\n\n**Argument 2:** Message
+		\n`"string"`
+		\n(Inbetween quotes.)
+		\n\n**Message modifiers** (usable in Argument 2)
+		\n`{u}`: Username
+		\n`{um}`: Username (mentions/pings the user)
+		\n`{c}`: Channel name
+		\n`{cm}`: Channel name (links to the channel)
+		\n`{b}`: Best Of name
+		\n`{bm}`: Best Of name (links to the channel)
+		\n`{m}`: Message
+		\n`{s}`: Server name
+		\n`{p}`: Points added or subtracted
+		\n`{k}`: Total karma count
+		\n`\\n`: Newline (pressing RETURN/ENTER)
+		"""
+		types = ["plus", "minus", "10"]
+		server = str(ctx.message.guild.id)
+		notifmode = best.search(Query().serverid == server)
+		notifmode = notifmode[0]['notification']
+		prefix = await getCurrentPrefix(ctx)
+
+		if (notifmode != "message"):
+			await sendErrorEmbed(ctx, "To set a custom notification message, the server should use Message Mode on notification settings!\nYou can change this with `" + prefix + "notification message`.")
+		else:
+			if not args:
+				await sendErrorEmbed(ctx, "Enter the type of message you'd like to change!" + errormessage)
+			elif any(item.lower() == args[0].lower() for item in types):
+				if len(args) == 1:
+					await sendErrorEmbed(ctx, "Hey, now - you have to enter the message you'd like to set, too!" + errormessage)
+				elif len(args) == 3:
+					await sendErrorEmbed(ctx, "The message should be inbetween quotes!" + errormessage)
+				else:
+					messageType = args[0]
+					if args[0] == "10repeat":
+						messageType = "10"
+					best.upsert({'serverid': server, messageType + "Message": args[1]}, Query().serverid == server)
+					print(best.search(Query().serverid == server))
+					parsed = await formatMessage(args[1], ctx.message)
+					await ctx.send("**You got it!** The new message for the `" + args[0] + "` trigger is " + parsed)
+			elif args[0] == "default":
+				# TO-DO: Arrglar xd
+				for item in types:
+					best.update(delete(item + "Message"), Query().serverid == server)
+				await ctx.send("**You got it!** All messages are back to the default.")
+			else:
+				await sendErrorEmbed(ctx, "You haven't entered a valid message type!" + errormessage)
+
+	
 def setup(client):
 	client.add_cog(Configuration(client))

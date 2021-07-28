@@ -31,6 +31,53 @@ async def getCurrentPrefix(ctx):
 		else:
 			return prefix
 
+async def formatMessage(string, message):
+	# DEFINITIONS
+
+	# Username
+	u = message.author.name
+	# Username Mention
+	um = message.author.mention
+	# Channel Name
+	c = message.channel.name
+	# Channel Mention
+	cm = message.channel.mention
+	# Best Of Name
+	base = best.get(Query().serverid == str(message.guild.id))
+	bcid = base['channelid']
+	bitem = discord.utils.get(message.guild.channels, id=bcid)
+	b = bitem.name
+	# Best Of Mention
+	bm = bitem.mention
+	# Message
+	m = message.content
+	# Server
+	s = message.guild.name
+	# Points added/subtracted
+	if message == "10":
+		p = "10"
+	else:
+		p = "1"
+	# Total karma
+	uid = str(message.author.id)
+	query = db.get(Query()['username'] == uid)
+	k = str(query.get('points'))
+
+	# PARSING
+	return string.replace('{u}', u).replace('{um}', um).replace('{c}', c).replace('{cm}', cm).replace('{b}', b).replace('{bm}', bm).replace('{m}', m).replace('{s}', s).replace('{p}', p).replace('{k}', k).replace('\\n', '\n')
+
+
+async def getFormattedMessage(message, msgtype):
+	serverid = str(message.guild.id)
+	bestof = best.get(Query().serverid == str(serverid))
+	if msgtype + "Message" in bestof.keys():
+		# todo: parse
+		parsed = await formatMessage(bestof[msgtype + "Message"], message)
+		return parsed
+	else:
+		return False
+
+
 async def getProfile(author, ctx, self):
 	valor = str(author)
 	searchvalor = str(author.id)
@@ -340,7 +387,7 @@ async def createLeaderboardEmbed(self, values, numero, ceronumero, ctx, ctxMessa
 async def sendErrorEmbed(ctxChannel, description):
 	title = "Looks like something went wrong..."
 	if random.randint(0,100) == 69:
-		title = "Oopsie Woopsie! UwU. We made a fuggy wuggy!!"
+		title = "Oopsie Woopsie! UwU. We made a fricky wicky!!"
 	embed=discord.Embed(title=title, description=description, color=0xfe2c2c)
 	embed.set_footer(text="Need help? Reach us at our support server! " + support)
 	errorEmbed = await ctxChannel.send(embed=embed)
@@ -620,7 +667,11 @@ async def reactionAdded(bot, payload):
 						if (notifmode != "reaction") and (notifmode != "disabled"):
 							channel = message.channel
 							result = db.get(Query()['username'] == value)
-							send = await channel.send("Huzzah! **{}**'s post was so good it got starred more than once. They now have {} points. (+10)".format(message.author.name,result.get('points')))
+							formattedMessage = await getFormattedMessage(message, "10")
+							if not formattedMessage:
+								send = await channel.send("Huzzah! **{}**'s post was so good it got starred more than once. They now have {} points. (+10)".format(message.author.name,result.get('points')))
+							else:
+								send = await channel.send(formattedMessage)
 					
 					# Send a confirmation message
 
@@ -635,8 +686,11 @@ async def reactionAdded(bot, payload):
 					if notifmode == "reaction":
 						react = await message.add_reaction(checkM)
 					if (notifmode != "reaction") and (notifmode != "disabled") and (postexists == 0):
-						send = await channel.send("Congrats, **{}**! Your post will be forever immortalized in the **#{}** channel. You now have {} points. (+10)".format(message.author.name,bestofname.name,result.get('points')))
-					
+						formattedMessage = await getFormattedMessage(message, "10")
+						if not formattedMessage:
+							send = await channel.send("Congrats, **{}**! Your post will be forever immortalized in the **#{}** channel. You now have {} points. (+10)".format(message.author.name,bestofname.name,result.get('points')))
+						else:
+							send = await channel.send(formattedMessage)
 					if not (contenido or message.embeds or message.attachments):
 						noMessage = await sendErrorEmbed(channel, 'No message was sent to the **#' + bestofname.name + '** channel. Chances are it\'s an unsupported type of file.')
 					# Delete said message
@@ -672,7 +726,11 @@ async def reactionAdded(bot, payload):
 						react = await message.add_reaction(checkM)
 					if (notifmode != "reaction") and (notifmode != "disabled"):
 						result = db.get(Query()['username'] == value)
-						heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(message.author.name,result.get('points')))
+						formattedMessage = await getFormattedMessage(message, "plus")
+						if not formattedMessage:
+							heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(message.author.name,result.get('points')))
+						else:
+							heart = await channel.send(formattedMessage)
 					if notifmode == "reaction":
 						await asyncio.sleep(1) 
 						botid = bot.user
@@ -737,7 +795,11 @@ async def reactionAdded(bot, payload):
 						react = await message.add_reaction(checkM)
 					if (notifmode != "reaction") and (notifmode != "disabled"):
 						result = db.get(Query()['username'] == value)
-						heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(message.author.name,result.get('points')))
+						formattedMessage = await getFormattedMessage(message, "plus")
+						if not formattedMessage:
+							heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(message.author.name,result.get('points')))
+						else:
+							heart = await channel.send(formattedMessage)
 					
 					# Delete said message
 					if notifmode == "reaction":
@@ -769,7 +831,11 @@ async def reactionAdded(bot, payload):
 						react = await message.add_reaction(checkM)
 					if (notifmode != "reaction") and (notifmode != "disabled"):
 						result = db.get(Query()['username'] == value)
-						crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(message.author.name,result.get('points')))
+						formattedMessage = await getFormattedMessage(message, "minus")
+						if not formattedMessage:
+							crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(message.author.name,result.get('points')))
+						else:
+							crush = await channel.send(formattedMessage)
 					if notifmode == "reaction":
 						await asyncio.sleep(1) 
 						botid = bot.user
@@ -837,8 +903,11 @@ async def reactionAdded(bot, payload):
 						react = await message.add_reaction(checkM)
 					if (notifmode != "reaction") and (notifmode != "disabled"):
 						result = db.get(Query()['username'] == value)
-						crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(message.author.name,result.get('points')))
-					
+						formattedMessage = await getFormattedMessage(message, "minus")
+						if not formattedMessage:
+							crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(message.author.name,result.get('points')))
+						else:
+							crush = await channel.send(formattedMessage)
 					# Delete said message
 					if notifmode == "reaction":
 						await asyncio.sleep(1) 
