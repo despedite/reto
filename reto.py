@@ -89,8 +89,11 @@ async def on_command_error(ctx, error):
 	elif isinstance(error, discord.ext.commands.errors.MissingPermissions):
 		await sendErrorEmbed(ctx, "You're missing the required permissions to run this command!")
 	else:
-		print("Ignoring exception in command {}:".format(ctx.command), file=sys.stderr)
+		print("❌ Ignoring exception in command {}:".format(ctx.command), file=sys.stderr)
 		traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+		nameTraceback = str(error).capitalize()
+		formattedTraceback = "\n".join(traceback.format_exception(type(error), error, error.__traceback__))
+		await sendErrorEmbed(ctx, nameTraceback + ".\n\n```py\n%s\n```" % formattedTraceback)
 	raise error
 
 @bot.event
@@ -99,7 +102,7 @@ async def on_ready():
 	# Warning for users who've yet to migrate to the new database system.
 	olddb = TinyDB("json/db.json")
 	if ((not db) and (olddb)):
-		print(pyfiglet.figlet_format("READ THIS!"))
+		print(pyfiglet.figlet_format("⚠️ READ THIS!"))
 		print("Hey there, " + botname + " admin!\nIf you're reading this, we've detected you've got the JSON databases from v1.5.2 and below, but have yet to populate the new ones.\nWe may have done a false positive, though. If this is your first time using " + botname + ", and you've started with v1.6 or higher, welcome aboard!\nPlease dismiss this message.\nIf not, here's the deal: v1.6 implements a new database system that's completely encrypted, to allow for more security of the data " + botname + " stores.\nHowever, this migration ISN'T DONE BY DEFAULT. If you want to use v1.6 and higher, you might want to import your databases to the new .reto filesystem!\n\nTo do so, please run 'python encrypt-databases.py' on the same folder as  " + botname + "'s.\nThis won't be destructive - your old DB previous to this update will still be around, but the new system will be used!\n\nThat's it. Thank you for using " + botname + "!\n\n")
 		print ("--------------------------------------------")
 
@@ -116,8 +119,8 @@ async def on_ready():
 	print ("?setup to get started!")
 	print ("--------------------------------------------")
 
-	async def on_guild_post():
-		print("Server count posted successfully")
+	#async def on_guild_post():
+	#	print("Server count posted successfully")
 
 	global botactivity
 	if not botactivity:

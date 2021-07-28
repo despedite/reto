@@ -58,9 +58,7 @@ def yes_or_no(question):
         return yes_or_no("\nAre you sure you want to proceed? ")	
 
 def update_database(olddb, newdb, dbname, withtimestamp):
-	if (newdb):
-		print("The " + dbname + " database isn't empty. Skipping...")
-	else:
+	if not (newdb):
 		i = 0
 		for dbelement in olddb:
 			i = i + 1

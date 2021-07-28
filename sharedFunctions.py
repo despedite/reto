@@ -187,7 +187,9 @@ async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel,
 			react = await ctxMessage.add_reaction(checkM)
 		
 		for key,values in leaderboard[(numero-1):]:
-			srvSettings = srv.search(Query().serverid == int(values[4]))[0]
+			srvSettings = srv.search(Query().serverid == int(values[4]))
+			if len(srvSettings) > 0:
+				srvSettings = srvSettings[0];
 			if (isGlobal == True and (("global" in srvSettings and srvSettings['global'] == True) or (not "global" in srvSettings))) or (isGlobal == False):
 				if numero != ((page * 5) + 1):
 					if args:
@@ -216,7 +218,6 @@ async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel,
 							numero = numero + 1
 							ceronumero = ceronumero + 1
 						else:
-							print("Oh no.")
 							typeArgs = 'mention'
 							lbEmbed[ceronumero] = await createLeaderboardEmbed(self, values, numero, ceronumero, ctx, ctxMessage, ctxChannel, lbEmbed, page)
 							if lbEmbed[ceronumero]:
@@ -238,8 +239,6 @@ async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel,
 								embedIds[ceronumero] = lbEmbed[ceronumero].id
 							numero = numero + 1
 							ceronumero = ceronumero + 1
-			else:
-				print("Este valor fue ocultado por Server Logging!")
 
 		if any(lbEmbed):
 			cleanIds = list(filter(None, embedIds))
@@ -265,7 +264,6 @@ async def createLeaderboardEmbed(self, values, numero, ceronumero, ctx, ctxMessa
 	username = self.client.get_user(str(values[2]))
 	if not username:
 		username = await self.client.fetch_user(str(values[2]))
-		print("User not found. Trying to fetch it...")
 	guild = self.client.get_guild(int(values[4]))
 	if username and guild:
 		contenido=values[1]
@@ -348,29 +346,35 @@ async def sendErrorEmbed(ctxChannel, description):
 	errorEmbed = await ctxChannel.send(embed=embed)
 	return errorEmbed
 
-async def exportData(userId):
+async def exportData(userId, ctx):
 	dbTable = [
 		{
-			'query': db.get(Query()['username'] == userId),
+			'query': db.search(Query()['username'] == userId),
 			'name': 'profile'
 		},
 		{
-			'query': post.get(Query()['username'] == userId),
+			'query': post.search(Query()['username'] == userId),
 			'name': 'comments'
 		},
 		{
-			'query': priv.get(Query()['username'] == int(userId)),
+			'query': priv.search(Query()['username'] == int(userId)),
 			'name': 'privacy'
 		}
 	]
 
+	#if not os.path.exists('export/'):
 	if not exists('export/'):
 		os.mkdir('export')
 	
 	for table in dbTable:
 		if table:
-			with open("export/" + table['name'] + "_" + userId + ".json", "w") as writeJson:
+			filename = table['name'] + "_" + userId + ".json"
+			filepath = "export/" + filename
+			with open(filepath, "a+") as writeJson:
 				writeJson.write(str(table['query']))
+			with open(filepath) as readJson:
+				await ctx.message.author.send(file=discord.File(readJson, filename))
+			os.remove(filepath)
 
 # TO-DO: Optimize.
 # This is RAW, man.
@@ -385,19 +389,15 @@ async def reactionAdded(bot, payload):
 	user = bot.get_user(payload.user_id)
 	if not user:
 		user = await bot.fetch_user(payload.user_id)
-		print("User not found. Trying to fetch it...")
 	channel = bot.get_channel(payload.channel_id)
 	if not channel:
 		channel = await bot.fetch_channel(payload.channel_id)
-		print("Channel not found. Trying to fetch it...")
 	guild = bot.get_guild(payload.guild_id)
 	if not guild:
 		guild = await bot.fetch_guild(payload.guild_id)
-		print("Guild not found. Trying to fetch it...")
 	member = guild.get_member(payload.user_id)
 	if not member:
 		member = await guild.fetch_member(payload.user_id)
-		print("Member not found. Trying to fetch it...")
 	# no such thing as "get_message"
 	message = await channel.fetch_message(payload.message_id)
 
@@ -614,8 +614,6 @@ async def reactionAdded(bot, payload):
 							else:
 								richembeds = ""
 							post.insert({'msgid': valuetwo, 'username': username, 'points': 10, 'servers': server, 'content': message.content, 'embed': attachments, 'richembed': richembeds, 'voters': [user.id], 'stars': 1, 'nsfw': is_nsfw, 'timestamp': curdate})
-						else:
-							print("Privacy Mode ENABLED!")
 					else:
 						post.update(add('points',10), where('msgid') == valuetwo)
 						post.update(add('voters',[user.id]), where('msgid') == valuetwo)
@@ -687,11 +685,9 @@ async def reactionAdded(bot, payload):
 					User=Query()
 					serverid=str(message.guild.id)
 					existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
-					print(str(existsserver))
 					if existsserver == 0:
 						db.update(add('points',1), where('username') == value)
 						l = str(db.search((User.username == value)))
-						print(l)
 						if "servers" not in l:
 							docs = db.search(User.username == value)
 							for doc in docs:
@@ -730,8 +726,6 @@ async def reactionAdded(bot, payload):
 							else:
 								richembeds = ""
 							post.insert({'msgid': valuetwo, 'username': username, 'points': 1, 'servers': server, 'content': message.content, 'embed': attachments, 'richembed': richembeds, 'voters': [user.id], 'stars': 0, 'nsfw': is_nsfw, 'timestamp': curdate})
-						else:
-							print("Privacy Mode ENABLED!")
 					else:
 						post.update(add('points',1), where('msgid') == valuetwo)
 						post.update(add('voters', [user.id]), where('msgid') == valuetwo)
@@ -790,11 +784,9 @@ async def reactionAdded(bot, payload):
 					User=Query()
 					serverid=str(message.guild.id)
 					existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
-					print(str(existsserver))
 					if existsserver == 0:
 						db.update(subtract('points',1), where('username') == value)
 						l = str(db.search((User.username == value)))
-						print(l)
 						if "servers" not in l:
 							docs = db.search(User.username == value)
 							for doc in docs:
@@ -833,8 +825,6 @@ async def reactionAdded(bot, payload):
 							else:
 								richembeds = ""
 							post.insert({'msgid': valuetwo, 'username': username, 'points': -1, 'servers': server, 'content': message.content, 'embed': attachments, 'richembed': richembeds, 'voters': [user.id], 'stars': 0, 'nsfw': is_nsfw, 'timestamp': curdate})
-						else:
-							print("Privacy Mode ENABLED!")
 					else:
 						post.update(subtract('points',1), where('msgid') == valuetwo)
 						post.update(add('voters', [user.id]), where('msgid') == valuetwo)
@@ -870,19 +860,15 @@ async def reactionRemoved(bot, payload):
 	user = bot.get_user(payload.user_id)
 	if not user:
 		user = await bot.fetch_user(payload.user_id)
-		print("User not found. Trying to fetch it...")
 	channel = bot.get_channel(payload.channel_id)
 	if not channel:
 		channel = await bot.fetch_channel(payload.channel_id)
-		print("Channel not found. Trying to fetch it...")
 	guild = bot.get_guild(payload.guild_id)
 	if not guild:
 		guild = await bot.fetch_guild(payload.guild_id)
-		print("Guild not found. Trying to fetch it...")
 	member = guild.get_member(payload.user_id)
 	if not member:
 		member = await guild.fetch_member(payload.user_id)
-		print("Member not found. Trying to fetch it...")
 	# no such thing as "get_message"
 	message = await channel.fetch_message(payload.message_id)
 

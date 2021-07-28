@@ -65,7 +65,6 @@ class Configuration(commands.Cog):
 				server = str(ctx.message.guild.id)
 				await ctx.guild.create_text_channel('best-of')
 				channelid = discord.utils.get(self.client.get_all_channels(), name='best-of')
-				print(channelid.id)
 				best.upsert({'serverid': server, 'channelid': channelid.id, 'notification': "message"}, Query().serverid == server)
 				creationLog += "\n- The Best Of channel, where Starred comments lie, was created."
 		except Exception as e:
@@ -285,7 +284,6 @@ class Configuration(commands.Cog):
 			await y2k.delete()
 		else:
 			channelid = discord.utils.get(self.client.get_all_channels(), name='best-of')
-			print(channelid.id)
 			best.upsert({'serverid': server, 'channelid': channelid.id, 'notification': "message"}, Query().serverid == server)
 			await ctx.send(":raised_hands: **You weren't set up**, so I did it for you.")
 			await ctx.send("If you want to change the name of the #best-of channel, you can edit it on the Discord settings as usual!")

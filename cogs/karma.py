@@ -66,7 +66,6 @@ class Karma(commands.Cog):
 				user = self.client.get_user(key)
 				if not user:
 					user = await self.client.fetch_user(key)
-					print("User not found. Trying to fetch it...")
 				# Check if someone is a dirty lil cheater
 				userData = db.search(Query().username == key)
 				rosebudemblem = ""
@@ -108,7 +107,6 @@ class Karma(commands.Cog):
 				user = self.client.get_user(key)
 				if not user:
 					user = await self.client.fetch_user(key)
-					print("User not found. Trying to fetch it...")
 				# Check if someone is a dirty lil cheater
 				userData = db.search(Query().username == key)
 				rosebudemblem = ""
@@ -140,7 +138,6 @@ class Karma(commands.Cog):
 		else:
 			if ctx.message.mentions:
 				valor = str(ctx.message.mentions[0].id)
-				print(valor)
 				result = post.search(Query()['username'] == valor) 
 			else:
 				result = post.all() # Defaults to every post. (?gplb nsfw, eg.)
@@ -172,7 +169,6 @@ class Karma(commands.Cog):
 		else:
 			if ctx.message.mentions:
 				valor = str(ctx.message.mentions[0].id)
-				print(valor)
 				result = post.search((User.servers == currentguild) & (User.username == valor))
 			else:
 				result = post.search(Query()['servers'] == currentguild) # Defaults to every post. (?plb sfw, eg.)

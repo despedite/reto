@@ -158,7 +158,10 @@ class Miscellaneous(commands.Cog):
 				directmessage = await ctx.message.author.send(embed=embed)
 				await directmessage.add_reaction(emoji='💣')
 			elif args[1] == "export":
-				await exportData(str(ctx.message.author.id))
+				embed=discord.Embed(title="Here's your data!", description="Attached below are the .JSON files Reto stores about you. (Do note this doesn't include server specific files.)", color=0xfee75c)
+				await ctx.message.add_reaction(emoji='✉')
+				directmessage = await ctx.message.author.send(embed=embed)
+				await exportData(str(ctx.message.author.id), ctx)
 		else:
 			await sendErrorEmbed(ctx,"Invalid argument. Try not adding any to see all the available ones!")
 			

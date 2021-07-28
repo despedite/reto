@@ -68,7 +68,6 @@ class Help(commands.Cog):
                     if x == cog: 
                         #making title
                         halp=discord.Embed(title=cog+' - Commands',description=self.client.cogs[cog].__doc__, color=discord.Color.green())
-                        print(type(halp))
                         for c in self.client.get_cog(cog).get_commands():
                             if not c.hidden: #if cog not hidden
                                 halp.add_field(name=c.name,value=c.help,inline=False)
@@ -79,7 +78,6 @@ class Help(commands.Cog):
                 else:
                     await ctx.message.add_reaction(emoji='✉')
                 await ctx.message.author.send('',embed=halp)
-                print(type(halp))
         
 def setup(client):
     client.add_cog(Help(client))

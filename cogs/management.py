@@ -160,7 +160,7 @@ class Management(commands.Cog):
 		if not ephemeral:
 			return
 		if self.isDeletingComments == False and self.isFirstTime == False and ephemeral:
-			print("Running the COMMENT DELETER...\nThis checks every 12 hours for saved comments that are 30 days old and deletes them from the comments.reto file,\nper Discord's verification rules. Do not stop " + botname + " while this is running!")
+			print("⚠️ Running the COMMENT DELETER...\nThis checks every 12 hours for saved comments that are 30 days old and deletes them from the comments.reto file,\nper Discord's verification rules. Do not stop " + botname + " while this is running!")
 			self.isDeletingComments = True # Don't run it twice at the same time!
 			i = 0
 			totalDeleted = 0
