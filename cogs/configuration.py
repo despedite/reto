@@ -396,6 +396,7 @@ class Configuration(commands.Cog):
 	@commands.command(description="If the #best-of channel stops working properly, you can reattach it with this command! Enter the channel as an argument.")
 	@commands.has_permissions(manage_guild=True)
 	async def reattach(self, ctx, channel: discord.TextChannel):
+		"""Make a pre-existing channel into the Best Of!"""
 		server = str(ctx.message.guild.id)
 		best.upsert({'channelid': channel.id}, Query().serverid == server)
 		await ctx.send("**Gotcha!** The new Best Of channel is now " + channel.mention + ".")
@@ -404,10 +405,10 @@ class Configuration(commands.Cog):
 	#	CHANGE NOTIFICATION MESSAGES
 	# -------------------------
 				
-	@commands.command(aliases=['nm'], description="If the #best-of channel stops working properly, you can reattach it with this command! Enter the channel as an argument.")
+	@commands.command(aliases=['nm'], description="Create your own custom notification messages! This requires `?notification` to be in Message Mode. Read more about the syntax using `?nm`.")
 	@commands.has_permissions(manage_guild=True)
 	async def notificationmessages(self, ctx, *args):
-
+		"""Create your own custom notification messages."""
 		errormessage = """
 		\n\n**Argument 1:** Message type
 		\n`[plus/minus/10/10repeat/default]`

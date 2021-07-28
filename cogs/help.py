@@ -43,8 +43,7 @@ class Help(commands.Cog):
             cogs_desc = ''
             for x in self.client.cogs:
                 if (x != "Reaction") and (x != "Management"):
-                    cogs_desc += ('💠 _{}_ {}'.format(x,self.client.cogs[x].__doc__)+'\n')
-            halp.add_field(name='Categories',value=cogs_desc[0:len(cogs_desc)-1],inline=False)
+                    halp.add_field(name=x,value=self.client.cogs[x].__doc__,inline=True)
             cmds_desc = ''
             for y in self.client.walk_commands():
                 if not y.cog_name and not y.hidden:

@@ -36,8 +36,8 @@ class Miscellaneous(commands.Cog):
 	@commands.command(description="Simple testing command to check the bot's latency.")
 	async def ping(self, ctx):
 		"""Nothing but a simple latency tester."""
-		latency = str(round(self.client.latency,3))
-		await ctx.send("🏓 **Pong!** Looks like the latency is about " + latency + "s.")
+		latency = str(int(round(self.client.latency,3)*1000))
+		await ctx.send("🏓 **Pong!** Looks like the latency is about " + latency + "ms.")
 
 	@commands.command(aliases=['update', 'changelog', 'log', 'news'], description="Check the new features on the bot since last update!")
 	async def updates(self, ctx):

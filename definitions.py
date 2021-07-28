@@ -64,10 +64,10 @@ def createConfigFile():
 	# Bot version
 	print("\nEnter BOT VERSION (6/9):")
 	print("The bot's current version. Appears on its Activities and other places.")
-	print("(default: 1.6b)")
+	print("(default: 1.6c)")
 	verInput = input("")
 	if not verInput:
-		verInput = "1.6b"
+		verInput = "1.6c"
 
 	# Bot owner
 	print("\nEnter BOT OWNER (7/9):")
