@@ -362,8 +362,7 @@ async def exportData(userId, ctx):
 		}
 	]
 
-	#if not os.path.exists('export/'):
-	if not exists('export/'):
+	if not os.path.exists('export/'):
 		os.mkdir('export')
 	
 	for table in dbTable:
