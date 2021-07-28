@@ -398,7 +398,7 @@ class Configuration(commands.Cog):
 	async def reattach(self, ctx, channel: discord.TextChannel):
 		"""Make a pre-existing channel into the Best Of!"""
 		server = str(ctx.message.guild.id)
-		best.upsert({'channelid': channel.id}, Query().serverid == server)
+		best.upsert({'channelid': channel.id, 'serverid': server}, Query().serverid == server)
 		await ctx.send("**Gotcha!** The new Best Of channel is now " + channel.mention + ".")
 
 	# -------------------------
@@ -432,8 +432,11 @@ class Configuration(commands.Cog):
 		"""
 		types = ["plus", "minus", "10"]
 		server = str(ctx.message.guild.id)
-		notifmode = best.search(Query().serverid == server)
-		notifmode = notifmode[0]['notification']
+		notifmode = best.get(Query().serverid == server)
+		if "notification" in notifmode:
+			notifmode = notifmode['notification']
+		else:
+			notifmode = "message"
 		prefix = await getCurrentPrefix(ctx)
 
 		if (notifmode != "message"):

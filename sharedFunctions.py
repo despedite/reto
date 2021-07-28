@@ -44,6 +44,9 @@ async def formatMessage(string, message):
 	cm = message.channel.mention
 	# Best Of Name
 	base = best.get(Query().serverid == str(message.guild.id))
+	if not base:
+		await sendErrorEmbed(message.channel, 'Looks like the #best-of channel doesn\'t exist!\nHave you ran `?setup` yet? If so, try `?reattach`ing the channel.')
+		return
 	bcid = base['channelid']
 	bitem = discord.utils.get(message.guild.channels, id=bcid)
 	b = bitem.name
@@ -66,16 +69,16 @@ async def formatMessage(string, message):
 	# PARSING
 	return string.replace('{u}', u).replace('{um}', um).replace('{c}', c).replace('{cm}', cm).replace('{b}', b).replace('{bm}', bm).replace('{m}', m).replace('{s}', s).replace('{p}', p).replace('{k}', k).replace('\\n', '\n')
 
-
 async def getFormattedMessage(message, msgtype):
 	serverid = str(message.guild.id)
 	bestof = best.get(Query().serverid == str(serverid))
-	if msgtype + "Message" in bestof.keys():
+	if not bestof:
+		return False
+	elif msgtype + "Message" in bestof.keys():
 		parsed = await formatMessage(bestof[msgtype + "Message"], message)
 		return parsed
 	else:
 		return False
-
 
 async def getProfile(author, ctx, self):
 	valor = str(author)
@@ -212,24 +215,21 @@ async def getProfile(author, ctx, self):
 		embed.add_field(name="Stars received", value=starsrec, inline=True)
 	await ctx.send(embed=embed)
 
-#####
-
 async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel, args, isGlobal):
 	numero = ((page-1) * 5) + 1
 	ceronumero = 1
 	lbEmbed = [None] * 12
 	embedIds = [None] * 12
 	typeArgs = 'default'
-
+	checkM = self.client.get_emoji(660250625107296256)
 	hardLimit = 6 #maximum amount of pages you can show on ?gplb. default is 6 (up to 25 messages)
 
 	if len(leaderboard) == 0:
 		await sendErrorEmbed(ctxChannel, "Looks like this leaderboard is empty! Why don't we get started by reacting to posts?")
-		await ctxMessage.remove_reaction(checkM, botid)
+		await ctxMessage.remove_reaction(checkM, self.client.user)
 
 	elif (isGlobal == True and not page > hardLimit) or isGlobal == False: 
 		if ctxMessage:
-			checkM = self.client.get_emoji(660250625107296256)
 			react = await ctxMessage.add_reaction(checkM)
 		
 		for key,values in leaderboard[(numero-1):]:
@@ -421,16 +421,128 @@ async def exportData(userId, ctx):
 				await ctx.message.author.send(file=discord.File(readJson, filename))
 			os.remove(filepath)
 
-# TO-DO: Optimize.
-# This is RAW, man.
+async def createBestOfEmbed(message):
+	# Decipher the color of the pre-existing embed, if there's any
+	colour = discord.Colour.default()
+
+	if message.embeds:
+		previousEmbed = message.embeds[0].to_dict()
+		if "color" in previousEmbed:
+			colour = previousEmbed['color']
+	
+	# Create the Embed element
+	embed = discord.Embed(description=message.content, color=colour)
+
+	# Set the embed's author and jump-to URL
+	messageUrl = "https://discordapp.com/channels/" + str(message.guild.id) + "/" + str(message.channel.id) + "/" + str(message.id)
+	embed.set_author(name=message.author.name, url=messageUrl, icon_url=message.author.avatar_url)
+
+	# --- PARSE THROUGH IMAGES/ATTACHMENTS ---
+	
+	if(len(message.attachments) > 0): #?
+		attachmentUrl = message.attachments[0].url
+		validAttachment = False
+		# Is this a valid image file? If so, set the image to it.
+		for e in ['jpg','jpeg','png','webp','gif']:
+			if attachmentUrl[-len(e)-1:]==f'.{e}':
+				embed.set_image(url=attachmentUrl)
+				validAttachment = True
+		if validAttachment == False:
+			# Try and match the file extension with the object type.
+			postIncludes = "an attachment"
+			for e in ['mp4', 'mov']:
+				if attachmentUrl[-len(e)-1:]==f'.{e}':
+					postIncludes = "a video"
+			for e in ['wav', 'mp3', 'ogg']:
+				if attachmentUrl[-len(e)-1:]==f'.{e}':
+					postIncludes = "an audio file"
+			# Send a footer warning!
+			attachmentUrl.set_footer(text="This post includes " + postIncludes + "! Click on the username to see the original.")
+		# If there's more than one image, set a warning on the footer!
+		if(len(message.attachments) > 1 and validAttachment == True):
+			attachmentUrl.set_footer(text="This post includes more than one image! Click on the username to see the original.")
+
+	# --- PARSE THROUGH EMBEDS ---
+	
+	if (message.embeds):
+		for previousEmbed in message.embeds:
+			# Get both embeds in a readable form.
+			previousEmbed = previousEmbed.to_dict()
+			thisEmbed 	  = embed.to_dict()
+
+			# Set the image to that of the previousEmbed if there are no other images in thisEmbed.
+			if (len(message.attachments) == 0) and not "image" in thisEmbed:
+				if "thumbnail" in previousEmbed:
+					embed.set_image(url=previousEmbed['thumbnail']['url'])
+				if "image" in previousEmbed:
+					embed.set_image(url=previousEmbed['image']['url'])
+
+			# Set the footer to that of the previousEmbed if there's no footer on thisEmbed.
+			if not "footer" in thisEmbed:
+				if "footer" in previousEmbed:
+					embed.set_footer(text=previousEmbed['footer']['text'])
+				else:
+					footer = ""
+					if "provider" in previousEmbed:
+						footer = previousEmbed['provider']['name']
+					if "author" in previousEmbed and not "title" in previousEmbed:
+						footer = previousEmbed['author']['name']
+					if footer:
+						embed.set_footer(text=footer)
+			
+			# Set the title, author and/or description based on the previousEmbed (where applicable)
+			title = ""
+			description = ""
+			if "title" in previousEmbed:
+				title = previousEmbed['title']
+			elif "author" in previousEmbed:
+				title = previousEmbed['author']['name']
+			if "description" in previousEmbed:
+				description = previousEmbed['description']
+			if title and description:
+				embed.add_field(name=title, value=description, inline=False)
+			if "fields" in previousEmbed:
+				for field in previousEmbed["fields"]:
+					embed.add_field(name=field['name'], value=field['value'], inline=False)
+	
+	return embed
+
+async def createBestOfChannel(message):
+
+	# Verify if no channel named best-of exists
+	channelsearch = discord.utils.get(message.guild.channels, name="best-of")
+
+	# Verify if no channels are saved in the best DB
+	bestsearch = best.search(Query().serverid == str(message.guild.id))
+	bestOfChannel = False
+
+	if "channelid" in bestsearch:
+		# If a channel is saved on the BD, verify if it actually exists
+		bestOfChannel = discord.utils.get(message.guild.channels, id=bestsearch["channelid"])
+
+	if channelsearch == None and (not bestsearch or not bestOfChannel):
+		# If the best-of channel is nowhere to be found, then create it
+		newBestOf = await message.guild.create_text_channel('best-of')
+		best.upsert({'serverid': str(message.guild.id), 'channelid': newBestOf.id, 'notification': "message"}, Query().serverid == str(message.guild.id))
+		# Return the channel element
+		return newBestOf
+	else:
+		# If it does exist, return False
+		return False
 
 async def reactionAdded(bot, payload):
+
+	# Ignore if we're on DMs.
 	if payload.guild_id is None:
 		return
-	User = Query()
-	userid  = payload.user_id
-	# Misc. definitions.
-	# Attempt a get_x command for brevity. If that doesn't work, use fetch_x (slow).
+
+	# --- VARIABLE DEFINITIONS ---
+
+	User = Query() # For TinyDB queries.
+	userId = payload.user_id
+	serverId = payload.guild_id
+
+	# Get user, channel, server, member and message.
 	user = bot.get_user(payload.user_id)
 	if not user:
 		user = await bot.fetch_user(payload.user_id)
@@ -443,478 +555,153 @@ async def reactionAdded(bot, payload):
 	member = guild.get_member(payload.user_id)
 	if not member:
 		member = await guild.fetch_member(payload.user_id)
-	# no such thing as "get_message"
 	message = await channel.fetch_message(payload.message_id)
 
-	if ((userid != message.author.id) or (debug == True)) and not user.bot:
+	# Author (of the original message)'s variables.
+	authorId = message.author.id
+
+	# Message related variables.
+	messageId = payload.message_id
+
+	# Channel related variables.
+	channel = message.channel
+	isNsfw = channel.is_nsfw()
+
+	# Emoji name
+	emojiName = payload.emoji.name.lower()
+
+	# Check notification types
+	notificationMode = best.get(Query().serverid == serverId)
+	if notificationMode:
+		notificationMode = notificationMode['notification']
+	else:
+		notificationMode = "message"
+	retoThumbsUp = bot.get_emoji(660217963911184384)
+
+	# Privacy data
+	privacySettings = priv.get(Query().username == userId)
+
+	# Timestamps
+	timestamp = str(datetime.now())
+
+	# What type is it, again?
+	types = {
+		"plus": {
+			"mode": "add",
+			"points": 1,
+			"operator": "+",
+			"message": "Hearted! **{u}** now has <:karma:862440157525180488> {k} Karma. (+{p})",
+			"bestOf": False,
+			"requiresCurator": False
+		},
+		"minus": {
+			"mode": "subtract",
+			"points": -1,
+			"message": "Crushed. **{u}** now has <:karma:862440157525180488> {k} Karma. (+{p})",
+			"bestOf": False,
+			"requiresCurator": False
+		},
+		"10": {
+			"mode": "add",
+			"points": 10,
+			"message": "Congrats, **{u}**! Your post will be forever immortalized in the **{bm}** channel. You now have <:karma:862440157525180488> {k} Karma. (+{p})",
+			"bestOf": True,
+			"requiresCurator": False
+		}
+	}
+
+	if ((userId != authorId) or (debug == True)) and not user.bot:
 		if not isinstance(payload.emoji, str):
-			# -------------------------
-			#	  REACTION = :10:
-			# -------------------------
-			
-			channel = message.channel
-			is_nsfw = channel.is_nsfw()
-			
-			if payload.emoji.name == '10':
-				if discord.utils.get(member.roles, name="Curator") is None:
+			if any(item.lower() == emojiName for item in types.keys()):
+
+				# If the role requires Curator and the user doesn't have it, boot 'em out
+				if discord.utils.get(member.roles, name="Curator") is None and types['requiresCurator']:
 					await message.remove_reaction(payload.emoji, user)
+					return
+				
+				# Get the values from the types dict.!
+				typeVariables = types[emojiName]
+
+				# --- ADDING POINTS ---
+
+				# Check if the user is on the database.
+				userExists = db.count(Query().username == str(authorId)) # NOTE: Stored as strings.
+				if not userExists:
+					db.insert({'username': str(authorId), 'points': typeVariables['points'], 'servers': [serverId]})
 				else:
-					channel = message.channel
+					# Add points to user.
+					db.update(add('points', typeVariables['points']), where('username') == str(authorId))
 					
-					messageurl = "https://discordapp.com/channels/" + str(message.guild.id) + "/" + str(message.channel.id) + "/" + str(message.id)
-					
-					# Post the message in #best-of
+					# Check if the user has any servers assigned to them. If not, assign!
+					serverExists = db.count((User.servers.any([serverId])) & (User.username == str(authorId)))
+					if not serverExists:
+						db.update(add('servers',[serverId]), where('username') == str(authorId))
 
-					contenido=message.content
-					autor=message.author.name
-					foto=message.author.avatar_url
-					if(len(message.attachments) > 0):
-						imagen=message.attachments[0].url
+				# --- SEND TO THE BEST OF ---
 
-					color = ""
-
-					# If there's an embed, set the color of the new embed to it. (first come, first serve)
-
-					if (message.embeds):
-						embed = message.embeds[0].to_dict()
-						if "color" in embed:
-							color = embed['color']
-					if color:
-						emberino=discord.Embed(description=contenido, color=color)
-					else:
-						emberino=discord.Embed(description=contenido)
-
-					emberino.set_author(name=autor, url=messageurl, icon_url=foto)
-					
-					if(len(message.attachments) > 0):
-						validAttachment = False
-						# Check for unsupported attachments
-						for e in ['jpg','jpeg','png','webp','gif']:
-							if imagen[-len(e)-1:]==f'.{e}':
-								emberino.set_image(url=imagen)
-								validAttachment = True
-						if validAttachment == False:
-							postIncludes = "an attachment"
-							for e in ['mp4', 'mov']:
-								if imagen[-len(e)-1:]==f'.{e}':
-									postIncludes = "a video"
-							for e in ['wav', 'mp3', 'ogg']:
-								if imagen[-len(e)-1:]==f'.{e}':
-									postIncludes = "an audio file"
-							emberino.set_footer(text="This post includes " + postIncludes + "! Click on the username to see the original.")
-						if(len(message.attachments) > 1 and validAttachment == True):
-							emberino.set_footer(text="This post includes more than one image! Click on the username to see the original.")
-					
-
-					# Parsing embeds:
-
-					if (message.embeds):
-						for embed in message.embeds:
-							embed = embed.to_dict()
-							thisEmbed = emberino.to_dict()
-							if (len(message.attachments) == 0) and not "image" in thisEmbed:
-								if "thumbnail" in embed:
-									emberino.set_image(url=embed['thumbnail']['url'])
-								if "image" in embed:
-									emberino.set_image(url=embed['image']['url'])
-							if not "footer" in thisEmbed:
-								if "footer" in embed:
-									emberino.set_footer(text=embed['footer']['text'])
-								else:
-									footer = ""
-									if "provider" in embed:
-										footer = embed['provider']['name']
-									if "author" in embed and not "title" in embed:
-										footer = embed['author']['name']
-									if footer:
-										emberino.set_footer(text=footer)
-							title = ""
-							description = ""
-							if "title" in embed:
-								title = embed['title']
-							elif "author" in embed:
-								title = embed['author']['name']
-							if "description" in embed:
-								description = embed['description']
-							if title and description:
-								emberino.add_field(name=title, value=description, inline=False)
-							if "fields" in embed:
-								for field in embed["fields"]:
-									emberino.add_field(name=field['name'], value=field['value'], inline=False)
-
-					# the difficult challenge of finding the channel to post to
-					
-					best.clear_cache()
-					server = str(message.guild.id)
-					channel = best.search(Query().serverid == server)
-
-					valuetwo = str(message.id)
-
-					postexists = post.search(Query().msgid == valuetwo)
-					if postexists:
-						postexists = int(postexists[0]['stars'])
-					else:
-						postexists = 0
-
-					if (postexists == 0):
-						try:
-							channel = channel[0]['channelid'] # channel id of best-of channel
-							channel = discord.utils.get(message.guild.channels, id=channel)
-							if channel == None:
-								channel = discord.utils.get(message.guild.channels, name="best-of")
-								if channel == None:
-									# if the bot doesn't find a channel named best-of, the channnel has been deleted. create a new one!
-									await message.guild.create_text_channel('best-of')
-									channel = discord.utils.get(message.guild.channels, name="best-of")
-									best.upsert({'serverid': server, 'channelid': channel.id, 'notification': "message"}, Query().serverid == server)
-									channelformsg = message.channel
-									await channelformsg.send("The *Best Of* channel doesn't exist, if the bot has permissions it has been created.")
-									channel = best.search(Query().serverid == server)
-									channel = channel[0]['channelid']
-									channel = discord.utils.get(message.guild.channels, id=channel)
-								else:
-									# if the bot does find a channel named best-of, the channel needs to be linked to the new db.
-									# this is for legacy users (1.3.5 and below)
-									best.upsert({'serverid': server, 'channelid': channel.id, 'notification': "message"}, Query().serverid == server)
-									channel = best.search(Query().serverid == server)
-									channel = channel[0]['channelid']
-									channel = discord.utils.get(message.guild.channels, id=channel)
-						except IndexError:
-							channel = discord.utils.get(message.guild.channels, name="best-of")
-							if channel == None:
-								# if the bot doesn't find a channel named best-of, the channnel has been deleted. create a new one!
-								await message.guild.create_text_channel('best-of')
-								channel = discord.utils.get(message.guild.channels, name="best-of")
-								best.upsert({'serverid': server, 'channelid': channel.id, 'notification': "message"}, Query().serverid == server)
-								channelformsg = message.channel
-								await channelformsg.send("The *Best Of* channel doesn't exist, if the bot has permissions it has been created.")
-								channel = best.search(Query().serverid == server)
-								channel = channel[0]['channelid']
-								channel = discord.utils.get(message.guild.channels, id=channel)
-							else:
-								# if the bot does find a channel named best-of, the channel needs to be linked to the new db.
-								# this is for legacy users (1.3.5 and below)
-								best.upsert({'serverid': server, 'channelid': channel.id, 'notification': "message"}, Query().serverid == server)
-								channel = best.search(Query().serverid == server)
-								channel = channel[0]['channelid']
-								channel = discord.utils.get(message.guild.channels, id=channel)
-						
-					# Add user to the points table
-					value = str(message.author.id)
-					exists = db.count(Query().username == value)
-					server = str(message.guild.id)
-					if exists == 0:
-						db.insert({'username': value, 'points': 10, 'servers': [server]})
-					else:
-						User=Query()
-						serverid=str(message.guild.id)
-						existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
-						if existsserver == 0:
-							db.update(add('points',10), where('username') == value)
-							l = str(db.search((User.username == value)))
-							if "servers" not in l:
-								docs = db.search(User.username == value)
-								for doc in docs:
-									doc['servers'] = [str(server)]
-								db.write_back(docs)
-							else:
-								db.update(add('servers',[server]), where('username') == value)
+				if typeVariables['bestOf']:
+					bestOfEmbed = await createBestOfEmbed(message)
+					if not commentExists:
+						bestOfSettings = best.get(Query().serverid == str(serverId))
+						if 'channelid' in bestOfSettings:
+							try:
+								bestOfChannel = discord.utils.get(message.guild.channels, id=bestOfSettings['channelid'])
+								# If the best-of  has been deleted...
+								if not bestOfChannel:
+									await sendErrorEmbed(channel, 'It appears the Best Of channel has been deleted. Creating a new one...')
+									bestOfChannel = await createBestOfChannel(message)
+								await bestOfChannel.send(embed=bestOfEmbed)
+							except discord.errors.Forbidden:
+								await sendErrorEmbed(channel, "I don't have sufficient permissions to post on the " + bestOfChannel.mention + " channel!")
 						else:
-							db.update(add('points',10), where('username') == value)
-					
-					# Finally, the bot sends the message to the Best-Of channel.
-					
-					if channel == None:
-						channelformsg = message.channel
-						await sendErrorEmbed(channelformsg, "The channel couldn't be sent to the Best Of channel, for some reason. Could you double-check it exists?")
-					else:
-						if (postexists == 0) and (contenido or message.embeds or message.attachments):
-							await channel.send(embed=emberino)
-
-					# Log post for post leaderboard
-						
-					priv.clear_cache()
-					privSettings = priv.search(Query().username == message.author.id)
-					if privSettings:
-						privSettings = privSettings[0]
-
-					username = str(message.author.id)
-					notifmode = best.search(Query().serverid == server)
-					notifmode = notifmode[0]['notification']
-
-					# ISO 8601!
-					curdate = str(datetime.now())
-
-					if postexists == 0:
-						if not privSettings or "mode" in privSettings and privSettings['mode'] == False or not "mode" in privSettings:
-							attachments = ""
-							if (len(message.attachments) > 0):
-								attachments = message.attachments[0].url
-							if (message.embeds):
-								richembeds = [None]*len(message.embeds)
-								i = 0
-								for embed in message.embeds:
-									richembeds[i] = embed.to_dict()
-									i = i + 1
-							else:
-								richembeds = ""
-							post.insert({'msgid': valuetwo, 'username': username, 'points': 10, 'servers': server, 'content': message.content, 'embed': attachments, 'richembed': richembeds, 'voters': [user.id], 'stars': 1, 'nsfw': is_nsfw, 'timestamp': curdate})
-					else:
-						post.update(add('points',10), where('msgid') == valuetwo)
-						post.update(add('voters',[user.id]), where('msgid') == valuetwo)
-						post.update(add('stars',1), where('msgid') == valuetwo)
-						if (notifmode != "reaction") and (notifmode != "disabled"):
-							channel = message.channel
-							result = db.get(Query()['username'] == value)
-							formattedMessage = await getFormattedMessage(message, "10")
-							if not formattedMessage:
-								send = await channel.send("Huzzah! **{}**'s post was so good it got starred more than once. They now have {} points. (+10)".format(message.author.name,result.get('points')))
-							else:
-								send = await channel.send(formattedMessage)
-					
-					# Send a confirmation message
-
-					channel = message.channel
-					result = db.get(Query()['username'] == value)
-					
-					bestofname = best.search(Query().serverid == server)
-					bestofname = bestofname[0]['channelid']
-					bestofname = discord.utils.get(message.guild.channels, id=bestofname)
-
-					checkM = bot.get_emoji(660217963911184384)
-					if notifmode == "reaction":
-						react = await message.add_reaction(checkM)
-					if (notifmode != "reaction") and (notifmode != "disabled") and (postexists == 0):
-						formattedMessage = await getFormattedMessage(message, "10")
-						if not formattedMessage:
-							send = await channel.send("Congrats, **{}**! Your post will be forever immortalized in the **#{}** channel. You now have {} points. (+10)".format(message.author.name,bestofname.name,result.get('points')))
-						else:
-							send = await channel.send(formattedMessage)
-					if not (contenido or message.embeds or message.attachments):
-						noMessage = await sendErrorEmbed(channel, 'No message was sent to the **#' + bestofname.name + '** channel. Chances are it\'s an unsupported type of file.')
-					# Delete said message
-					if notifmode == "reaction":
-						await asyncio.sleep(1) 
-						botid = bot.user
-						await message.remove_reaction(checkM, botid)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						await asyncio.sleep(3) 
-						await send.delete()
-					if not (contenido or message.embeds or message.attachments):
-						await asyncio.sleep(3) 
-						await noMessage.delete()
-
-			# -------------------------
-			#	  REACTION = :PLUS:
-			# -------------------------	
-			
-			if payload.emoji.name == 'plus':
-				channel = message.channel
-
-				# Add user to the points table
-				value = str(message.author.id)
-				exists = db.count(Query().username == value)
-				server = str(message.guild.id)
-				if exists == 0:
-					db.insert({'username': value, 'points': 1, 'servers': [server]})
-					# Send a confirmation message or reaction
-					notifmode = best.search(Query().serverid == server)
-					notifmode = notifmode[0]['notification']
-					checkM = bot.get_emoji(660217963911184384)
-					if notifmode == "reaction":
-						react = await message.add_reaction(checkM)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						result = db.get(Query()['username'] == value)
-						formattedMessage = await getFormattedMessage(message, "plus")
-						if not formattedMessage:
-							heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(message.author.name,result.get('points')))
-						else:
-							heart = await channel.send(formattedMessage)
-					if notifmode == "reaction":
-						await asyncio.sleep(1) 
-						botid = bot.user
-						await message.remove_reaction(checkM, botid)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						await asyncio.sleep(3) 
-						await heart.delete()
+							await sendErrorEmbed(channel, 'It looks like there\'s no Best Of channel on this server! Creating a new one...')
+							await createBestOfChannel(message)
+				
+				# --- LOG ON POST LEADERBOARD ---
+				
+				# Is the comment already available on the database?
+				commentExists = post.count(Query().msgid == str(messageId))
+				if not commentExists:
+					# If the comment doesn't exist, let's create a new value on the DB!
+					# If Privacy Mode isn't on:
+					if not privacySettings or "mode" in privacySettings and privacySettings['mode'] == False or not "mode" in privacySettings:
+						# Dummy variables
+						attachments = ""
+						richEmbeds = ""
+						# If attachments or embeds exist, assign them to a readable format
+						if (len(message.attachments) > 0):
+							attachments = message.attachments[0].url
+						if (message.embeds):
+							richEmbeds = [None]*len(message.embeds)
+							i = 0
+							for embed in message.embeds:
+								richEmbeds[i] = embed.to_dict()
+								i = i + 1
+						# And insert all that into the Comment DB!
+						post.insert({'msgid': str(messageId), 'username': str(authorId), 'points': typeVariables['points'], 'servers': str(serverId), 'content': message.content, 'embed': attachments, 'richembed': richEmbeds, 'voters': [userId], 'stars': 0, 'nsfw': isNsfw, 'timestamp': timestamp})
 				else:
-					User=Query()
-					serverid=str(message.guild.id)
-					existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
-					if existsserver == 0:
-						db.update(add('points',1), where('username') == value)
-						l = str(db.search((User.username == value)))
-						if "servers" not in l:
-							docs = db.search(User.username == value)
-							for doc in docs:
-								doc['servers'] = [str(server)]
-							db.write_back(docs)
-						else:
-							db.update(add('servers',[server]), where('username') == value)
+					# If the comment does exist, let's just add points onto it.
+					post.update(add('points', typeVariables['points']), where('msgid') == str(messageId))
+					post.update(add('voters', [userId]), where('msgid') == str(messageId))
+
+				# --- POST A CONFIRMATION MESSAGE ---
+
+				# If set to Reaction, add then remove it.
+				if notificationMode == "reaction":
+					await message.add_reaction(retoThumbsUp)
+					await asyncio.sleep(1)
+					await message.remove_reaction(retoThumbsUp, bot.user)
+				# If set to Message or notificationMode is null, send a message.
+				if (notificationMode != "reaction") and (notificationMode != "disabled"):
+					formattedMessage = await getFormattedMessage(message, emojiName)
+					if not formattedMessage:
+						# If a custom Message Notification doesn't exist, send the default.
+						formattedDefault = await formatMessage(typeVariables['message'], message)
+						confirmationMessage = await channel.send(formattedDefault)
 					else:
-						db.update(add('points',1), where('username') == value)
-					
-					# Log post for post leaderboard
-					
-					priv.clear_cache()
-					privSettings = priv.search(Query().username == message.author.id)
-					if privSettings:
-						privSettings = privSettings[0]
-
-					valuetwo = str(message.id)
-					username = str(message.author.id)
-					postexists = post.count(Query().msgid == valuetwo)
-
-					# ISO 8601!
-					curdate = str(datetime.now())
-					
-					if postexists == 0:
-						if not privSettings or "mode" in privSettings and privSettings['mode'] == False or not "mode" in privSettings:
-							attachments = ""
-							if (len(message.attachments) > 0):
-								attachments = message.attachments[0].url
-							if (message.embeds):
-								richembeds = [None]*len(message.embeds)
-								i = 0
-								for embed in message.embeds:
-									richembeds[i] = embed.to_dict()
-									i = i + 1
-							else:
-								richembeds = ""
-							post.insert({'msgid': valuetwo, 'username': username, 'points': 1, 'servers': server, 'content': message.content, 'embed': attachments, 'richembed': richembeds, 'voters': [user.id], 'stars': 0, 'nsfw': is_nsfw, 'timestamp': curdate})
-					else:
-						post.update(add('points',1), where('msgid') == valuetwo)
-						post.update(add('voters', [user.id]), where('msgid') == valuetwo)
-
-					best.clear_cache()
-					notifmode = best.search(Query().serverid == server)
-					notifmode = notifmode[0]['notification']
-					checkM = bot.get_emoji(660217963911184384)
-					if notifmode == "reaction":
-						react = await message.add_reaction(checkM)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						result = db.get(Query()['username'] == value)
-						formattedMessage = await getFormattedMessage(message, "plus")
-						if not formattedMessage:
-							heart = await channel.send("**Hearted!** {} now has {} points. (+1)".format(message.author.name,result.get('points')))
-						else:
-							heart = await channel.send(formattedMessage)
-					
-					# Delete said message
-					if notifmode == "reaction":
-						await asyncio.sleep(1) 
-						botid = bot.user
-						await message.remove_reaction(checkM, botid)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						await asyncio.sleep(3) 
-						await heart.delete()
-			
-			# -------------------------
-			#	  REACTION = :MINUS:
-			# -------------------------	
-			
-			if payload.emoji.name == 'minus':
-				channel = message.channel
-
-				# Add user to the points table
-				value = str(message.author.id)
-				exists = db.count(Query().username == value)
-				server = str(message.guild.id)
-				if exists == 0:
-					db.insert({'username': value, 'points': -1, 'servers': [server]})
-					# Send a confirmation message
-					notifmode = best.search(Query().serverid == server)
-					notifmode = notifmode[0]['notification']
-					checkM = bot.get_emoji(660217963911184384)
-					if notifmode == "reaction":
-						react = await message.add_reaction(checkM)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						result = db.get(Query()['username'] == value)
-						formattedMessage = await getFormattedMessage(message, "minus")
-						if not formattedMessage:
-							crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(message.author.name,result.get('points')))
-						else:
-							crush = await channel.send(formattedMessage)
-					if notifmode == "reaction":
-						await asyncio.sleep(1) 
-						botid = bot.user
-						await message.remove_reaction(checkM, botid)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						await asyncio.sleep(3) 
-						await crush.delete()
-
-
-				else:
-					User=Query()
-					serverid=str(message.guild.id)
-					existsserver = db.count((User.servers.any([serverid])) & (User.username == value))				# no funciona
-					if existsserver == 0:
-						db.update(subtract('points',1), where('username') == value)
-						l = str(db.search((User.username == value)))
-						if "servers" not in l:
-							docs = db.search(User.username == value)
-							for doc in docs:
-								doc['servers'] = [str(server)]
-							db.write_back(docs)
-						else:
-							db.update(add('servers',[server]), where('username') == value)
-					else:
-						db.update(subtract('points',1), where('username') == value)
-					
-					# Log post for post leaderboard
-					
-					priv.clear_cache()
-					privSettings = priv.search(Query().username == message.author.id)
-					if privSettings:
-						privSettings = privSettings[0]
-
-					valuetwo = str(message.id)
-					username = str(message.author.id)
-					postexists = post.count(Query().msgid == valuetwo)
-
-					# ISO 8601!
-					curdate = str(datetime.now())
-
-					if postexists == 0:
-						if not privSettings or "mode" in privSettings and privSettings['mode'] == False or not "mode" in privSettings:
-							attachments = ""
-							if (len(message.attachments) > 0):
-								attachments = message.attachments[0].url
-							if (message.embeds):
-								richembeds = [None]*len(message.embeds)
-								i = 0
-								for embed in message.embeds:
-									richembeds[i] = embed.to_dict()
-									i = i + 1
-							else:
-								richembeds = ""
-							post.insert({'msgid': valuetwo, 'username': username, 'points': -1, 'servers': server, 'content': message.content, 'embed': attachments, 'richembed': richembeds, 'voters': [user.id], 'stars': 0, 'nsfw': is_nsfw, 'timestamp': curdate})
-					else:
-						post.update(subtract('points',1), where('msgid') == valuetwo)
-						post.update(add('voters', [user.id]), where('msgid') == valuetwo)
-
-					# Send a confirmation message
-					best.clear_cache()
-					notifmode = best.search(Query().serverid == server)
-					notifmode = notifmode[0]['notification']
-					checkM = bot.get_emoji(660217963911184384)
-					if notifmode == "reaction":
-						react = await message.add_reaction(checkM)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						result = db.get(Query()['username'] == value)
-						formattedMessage = await getFormattedMessage(message, "minus")
-						if not formattedMessage:
-							crush = await channel.send("**Crushed.** {} now has {} points. (-1)".format(message.author.name,result.get('points')))
-						else:
-							crush = await channel.send(formattedMessage)
-					# Delete said message
-					if notifmode == "reaction":
-						await asyncio.sleep(1) 
-						botid = bot.user
-						await message.remove_reaction(checkM, botid)
-					if (notifmode != "reaction") and (notifmode != "disabled"):
-						await asyncio.sleep(3) 
-						await crush.delete()		
+						confirmationMessage = await channel.send(formattedMessage)					
+					await asyncio.sleep(3) 
+					await confirmationMessage.delete()
 
 async def reactionRemoved(bot, payload):
 	if payload.guild_id is None:
@@ -977,8 +764,11 @@ async def reactionRemoved(bot, payload):
 				# instead, we send a reaction unless notifications are disabled
 				server = str(message.guild.id)
 				checkM = bot.get_emoji(660217963911184384)
-				notifmode = best.search(Query().serverid == server)
-				notifmode = notifmode[0]['notification']
+				notifmode = best.get(Query().serverid == server)
+				if "notification" in notifmode:
+					notifmode = notifmode['notification']
+				else:
+					notifmode = "message"
 				if notifmode != "disabled":
 					react = await message.add_reaction(checkM)
 					await asyncio.sleep(1) 
