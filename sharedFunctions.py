@@ -639,6 +639,10 @@ async def reactionAdded(bot, payload):
 
 				# --- SEND TO THE BEST OF ---
 
+				# Is the comment already available on the database?
+				commentExists = post.count(Query().msgid == str(messageId))
+				# Dummy variable (for comment database later down the line)
+				bestOfSentEmbed = False
 				if typeVariables['bestOf']:
 					bestOfEmbed = await createBestOfEmbed(message)
 					if not commentExists:
@@ -650,7 +654,7 @@ async def reactionAdded(bot, payload):
 								if not bestOfChannel:
 									await sendErrorEmbed(channel, 'It appears the Best Of channel has been deleted. Creating a new one...')
 									bestOfChannel = await createBestOfChannel(message)
-								await bestOfChannel.send(embed=bestOfEmbed)
+								bestOfSentEmbed = await bestOfChannel.send(embed=bestOfEmbed)
 							except discord.errors.Forbidden:
 								await sendErrorEmbed(channel, "I don't have sufficient permissions to post on the " + bestOfChannel.mention + " channel!")
 						else:
@@ -659,8 +663,6 @@ async def reactionAdded(bot, payload):
 				
 				# --- LOG ON POST LEADERBOARD ---
 				
-				# Is the comment already available on the database?
-				commentExists = post.count(Query().msgid == str(messageId))
 				if not commentExists:
 					# If the comment doesn't exist, let's create a new value on the DB!
 					# If Privacy Mode isn't on:
@@ -668,6 +670,7 @@ async def reactionAdded(bot, payload):
 						# Dummy variables
 						attachments = ""
 						richEmbeds = ""
+						bestOfId = ""
 						# If attachments or embeds exist, assign them to a readable format
 						if (len(message.attachments) > 0):
 							attachments = message.attachments[0].url
@@ -677,8 +680,11 @@ async def reactionAdded(bot, payload):
 							for embed in message.embeds:
 								richEmbeds[i] = embed.to_dict()
 								i = i + 1
+						# If the post was sent to Best Of, track that ID
+						if bestOfSentEmbed:
+							bestOfId = str(bestOfSentEmbed.id)
 						# And insert all that into the Comment DB!
-						post.insert({'msgid': str(messageId), 'username': str(authorId), 'points': typeVariables['points'], 'servers': str(serverId), 'content': message.content, 'embed': attachments, 'richembed': richEmbeds, 'voters': [userId], 'stars': 0, 'nsfw': isNsfw, 'timestamp': timestamp})
+						post.insert({'msgid': str(messageId), 'username': str(authorId), 'points': typeVariables['points'], 'servers': str(serverId), 'content': message.content, 'embed': attachments, 'richembed': richEmbeds, 'voters': [userId], 'stars': 0, 'nsfw': isNsfw, 'timestamp': timestamp, 'bestofid': bestOfId})
 				else:
 					# If the comment does exist, let's just add points onto it.
 					post.update(add('points', typeVariables['points']), where('msgid') == str(messageId))
@@ -757,6 +763,11 @@ async def reactionRemoved(bot, payload):
 					#post.update(subtract('voters',[user.id]), where('msgid') == str(valuetwo))
 					if payload.emoji.name == '10':
 						post.update(subtract('stars',1), where('msgid') == str(valuetwo))
+						# Get stars from post
+						finalPost = post.get(where('msgid') == str(valuetwo))
+						if "bestofid" in finalPost and finalPost["stars"] <= 0:
+							bestOfMessage = await channel.fetch_message(int(finalPost["bestofid"]))
+							await bestOfMessage.delete()
 
 				# todo (if possible): remove the message from the best of channel if there are 0 :10: reactions
 
