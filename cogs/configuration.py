@@ -60,9 +60,10 @@ class Configuration(commands.Cog):
 		
 		# If the channel "#best-of" doesn't exist, the bot creates it.
 		try:
+			server = str(ctx.message.guild.id)
 			channelsearch = discord.utils.get(ctx.guild.channels, name="best-of")
+			bestsearch = best.search(Query().serverid == server)
 			if channelsearch == None:
-				server = str(ctx.message.guild.id)
 				await ctx.guild.create_text_channel('best-of')
 				channelid = discord.utils.get(self.client.get_all_channels(), name='best-of')
 				best.upsert({'serverid': server, 'channelid': channelid.id, 'notification': "message"}, Query().serverid == server)
