@@ -454,9 +454,10 @@ class Configuration(commands.Cog):
 					parsed = await formatMessage(args[1], ctx.message)
 					await ctx.send("**You got it!** The new message for the `" + args[0] + "` trigger is " + parsed)
 			elif args[0] == "default":
-				# TO-DO: Arrglar xd
-				for item in types:
-					best.update(delete(item + "Message"), Query().serverid == server)
+				bestof = best.get(Query().serverid == server)
+				for t in types:
+					if t + "Message" in bestof.keys():
+						best.update(delete(t + "Message"), Query().serverid == server)
 				await ctx.send("**You got it!** All messages are back to the default.")
 			else:
 				await sendErrorEmbed(ctx, "You haven't entered a valid message type!" + errormessage)

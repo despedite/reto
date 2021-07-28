@@ -71,7 +71,6 @@ async def getFormattedMessage(message, msgtype):
 	serverid = str(message.guild.id)
 	bestof = best.get(Query().serverid == str(serverid))
 	if msgtype + "Message" in bestof.keys():
-		# todo: parse
 		parsed = await formatMessage(bestof[msgtype + "Message"], message)
 		return parsed
 	else:
