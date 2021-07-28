@@ -72,6 +72,8 @@ for file in os.listdir("./cogs"):
 async def on_command_error(ctx, error):
 	ignored = (commands.CommandNotFound, )
 	error = getattr(error, 'original', error)
+	if isinstance(error, discord.ext.commands.errors.ChannelNotFound):
+		await sendErrorEmbed(ctx, "I can't find that channel! Make sure you're adding a (valid) Channel element.")
 	if isinstance(error, ignored):
 		return
 	if isinstance(error, discord.ext.commands.CommandNotFound):

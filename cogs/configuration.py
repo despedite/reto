@@ -359,9 +359,9 @@ class Configuration(commands.Cog):
 	@commands.command(aliases=['notif', 'notifications'], description="Change the confirm notification settings (e.g. Congrats! X person gave you a star and now you're in the Best Of channel.) from Reactions to Messages. (?notification message/?notification reaction)")
 	@commands.has_permissions(manage_guild=True)
 	async def notification(self,ctx,*args):
+		"""Change confirm notif. to messages or reactions."""
 
 		prefix = await getCurrentPrefix(ctx)
-		"""Change confirm notif. to messages or reactions."""
 		loadingEmoji = self.client.get_emoji(660250625107296256)
 		okayEmoji = self.client.get_emoji(660217963911184384)
 		server = str(ctx.message.guild.id)
@@ -388,6 +388,16 @@ class Configuration(commands.Cog):
 		else:
 			await sendErrorEmbed(ctx, "That's not a valid option!")
 		
+	# -------------------------
+	#	REATTACH BEST-OF
+	# -------------------------
+				
+	@commands.command(description="If the #best-of channel stops working properly, you can reattach it with this command! Enter the channel as an argument.")
+	@commands.has_permissions(manage_guild=True)
+	async def reattach(self, ctx, channel: discord.TextChannel):
+		server = str(ctx.message.guild.id)
+		best.upsert({'channelid': channel.id}, Query().serverid == server)
+		await ctx.send("**Gotcha!** The new Best Of channel is now " + channel.mention + ".")
 
 def setup(client):
 	client.add_cog(Configuration(client))
