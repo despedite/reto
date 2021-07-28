@@ -63,7 +63,7 @@ class Configuration(commands.Cog):
 			server = str(ctx.message.guild.id)
 			channelsearch = discord.utils.get(ctx.guild.channels, name="best-of")
 			bestsearch = best.search(Query().serverid == server)
-			if channelsearch == None:
+			if channelsearch == None and not bestsearch:
 				await ctx.guild.create_text_channel('best-of')
 				channelid = discord.utils.get(self.client.get_all_channels(), name='best-of')
 				best.upsert({'serverid': server, 'channelid': channelid.id, 'notification': "message"}, Query().serverid == server)
