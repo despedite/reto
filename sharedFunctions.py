@@ -768,9 +768,7 @@ async def reactionRemoved(bot, payload):
 						if "bestofid" in finalPost and finalPost["stars"] <= 0:
 							bestOfMessage = await channel.fetch_message(int(finalPost["bestofid"]))
 							await bestOfMessage.delete()
-
-				# todo (if possible): remove the message from the best of channel if there are 0 :10: reactions
-
+				
 				# we shouldn't send a message if someone un-reacted, that'd be mean.
 				# instead, we send a reaction unless notifications are disabled
 				server = str(message.guild.id)
