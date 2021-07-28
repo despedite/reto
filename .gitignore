@@ -3,3 +3,5 @@ json/
 cogs/__pycache__
 __pycache__
 db/
+images/testimage.png
+.vscode/
