@@ -454,7 +454,6 @@ class Configuration(commands.Cog):
 					if args[0] == "10repeat":
 						messageType = "10"
 					best.upsert({'serverid': server, messageType + "Message": args[1]}, Query().serverid == server)
-					print(best.search(Query().serverid == server))
 					parsed = await formatMessage(args[1], ctx.message)
 					await ctx.send("**You got it!** The new message for the `" + args[0] + "` trigger is " + parsed)
 			elif args[0] == "default":

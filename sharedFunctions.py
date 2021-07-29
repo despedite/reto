@@ -206,7 +206,6 @@ async def getProfile(author, ctx, self):
 	await author.avatar_url.save("images/avatar.png")
 	colorThief = ColorThief("images/avatar.png")
 	dominantColor = colorThief.get_color(quality=1)
-	print(dominantColor)
 
 	embed=discord.Embed(title=author.name, color=discord.Colour.from_rgb(dominantColor[0], dominantColor[1], dominantColor[2]))
 	embed.set_thumbnail(url=author.avatar_url)
@@ -222,7 +221,8 @@ async def getProfile(author, ctx, self):
 		plusEmoji = discord.utils.get(ctx.guild.emojis, name="plus")
 		starEmoji = discord.utils.get(ctx.guild.emojis, name="10")
 		embed.add_field(name="Badges", value=leaderemblem + curatoremblem + botemblem + rosebudemblem, inline=False)
-		embed.add_field(name="Stats", value=rank + "🌐 Global Rank  `" + leaderemblem + str(leadervalue) + "`\n" + str(plusEmoji) + " Times reacted `" + str(len(sentpoints)) + "`\n" + str(starEmoji) + " Stars received `" + str(starsrec) + "`", inline=False)
+		embed.add_field(name="Stats", value=rank + "🌐 Global Rank  `" + str(leadervalue) + "`\n" + str(plusEmoji) + " Times reacted `" + str(len(sentpoints)) + "`", inline=False)
+		# + "`\n" + str(starEmoji) + " Stars received `" + str(starsrec) + "`"
 	await ctx.send(embed=embed)
 
 async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel, args, isGlobal):

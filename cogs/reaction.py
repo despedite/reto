@@ -61,7 +61,6 @@ class Reaction(commands.Cog):
 					page = result.get('page') + 1
 					currentguild = str(reaction.message.guild.id)
 					isGlobal = result.get('global')
-					print(isGlobal)
 					if (isGlobal == True):
 						result = post.all()
 					else:
