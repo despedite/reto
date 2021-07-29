@@ -3,7 +3,7 @@
 ## 🤖 Reto
 > Reto is a community-oriented Discord bot, featuring a karma system, a way to reward the best comments, leaderboards, and so much more! React to a post with the `plus` or `minus` emojis to give said user some points for their content. `Curators` can even star (react with the exclusive `10` emoji) posts to give them extra points, and add their comment to a special "Best Of" channel for all to admire!
 
-[![Add Reto](assets/add-reto.png)](https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342449744&scope=bot)
+[![Add Reto](assets/add-reto.png)](https://discordapp.com/api/oauth2/authorize?client_id=591466921812164608&permissions=1342524496&scope=bot)
 [![Join Server](assets/join-server.png)](https://discord.gg/RAwfrty)
 
 ## ⚙️ Features
