@@ -22,12 +22,20 @@ import traceback
 import sys
 from colorama import init, Fore, Back, Style
 from yaspin import yaspin
-from yaspin.spinners import Spinners
 
 # sharedFunctions
 from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed, reactionAdded, reactionRemoved
 
 # ----------------------------------------------------------------------------------------------
+
+# Set up logging
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+handler = logging.FileHandler(filename='logs/discord-' + datetime.now().strftime("%Y-%m-%d") + '.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 # Start Colorama ANSI
 init(autoreset=True)
@@ -38,10 +46,8 @@ spinner.start()
 
 getactivities = activity.all()
 botactivity = []
-i = 0
 for value in getactivities:
-	botactivity.append(getactivities[i]["activity"])
-	i += 1
+	botactivity.append(value["activity"])
 
 def get_prefix(bot, msg):
 	customprefix.clear_cache()
@@ -194,11 +200,9 @@ async def statusupdates():
 		# update the activity list
 		activity.clear_cache()
 		getactivities = activity.all()
-		i = 0
 		botactivity = []
 		for value in getactivities:
-			botactivity.append(getactivities[i]["activity"])
-			i += 1
+			botactivity.append(value["activity"])
 		if not botactivity:
 			botactivity = [prefix + 'setup to get started!', 'Hey, bot owner - change the default activities with ' + prefix + 'activity!']
 		if botver != "":
