@@ -162,6 +162,7 @@ async def on_ready():
 	if j:
 		if not "message" in j:
 			if j[0]["tag_name"] != botver:
+				updateSpinner.stop()
 				print("🛑 [v" + j[0]["tag_name"] + "] " + Fore.RED + "A new version of " + botname + " is available!\n"
 						+ Style.RESET_ALL + "   Get it at " + Fore.BLUE + "https://github.com/despedite/reto/releases")
 			else:
