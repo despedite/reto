@@ -17,6 +17,7 @@ import random
 from datetime import datetime, date
 import logging
 import ast
+from colorthief import ColorThief
 
 # ----------------------------------------------------------------------------------------------
 
@@ -201,7 +202,13 @@ async def getProfile(author, ctx, self):
 	# SEND THE EMBED
 	#
 
-	embed=discord.Embed(title=author.name)
+	# Color of embed is the dominant of the user's avatar
+	await author.avatar_url.save("images/avatar.png")
+	colorThief = ColorThief("images/avatar.png")
+	dominantColor = colorThief.get_color(quality=1)
+	print(dominantColor)
+
+	embed=discord.Embed(title=author.name, color=discord.Colour.from_rgb(dominantColor[0], dominantColor[1], dominantColor[2]))
 	embed.set_thumbnail(url=author.avatar_url)
 	rank = ""
 	if not isinstance(ctx.message.channel, discord.channel.DMChannel):
