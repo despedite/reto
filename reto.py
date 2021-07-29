@@ -1,5 +1,5 @@
 # Import global variables and databases.
-from definitions import bottoken, botname, botver, prefix, debug, db, srv, activity, customprefix
+from definitions import bottoken, botname, botver, prefix, debug, db, srv, activity, customprefix, gusername, grepo
 
 # Imports, database definitions and all that kerfuffle.
 
@@ -13,24 +13,41 @@ import aiohttp
 import aiofiles
 import os.path
 import os
+import requests
 import json
 import random
 from datetime import datetime, date
 import logging
 import traceback
 import sys
+from colorama import init, Fore, Back, Style
+from yaspin import yaspin
 
 # sharedFunctions
 from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile, sendErrorEmbed, reactionAdded, reactionRemoved
 
 # ----------------------------------------------------------------------------------------------
 
+# Start Colorama ANSI
+init(autoreset=True)
+
+# Loading icon
+spinner = yaspin(text="Loading " + botname + "... " + Style.DIM + "(This may take a while.)", color="blue")
+spinner.start()
+
+# Set up logging
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+handler = logging.FileHandler(filename='logs/discord-' + datetime.now().strftime("%Y-%m-%d") + '.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
+
 getactivities = activity.all()
 botactivity = []
-i = 0
 for value in getactivities:
-	botactivity.append(getactivities[i]["activity"])
-	i += 1
+	botactivity.append(value["activity"])
 
 def get_prefix(bot, msg):
 	customprefix.clear_cache()
@@ -45,7 +62,7 @@ def get_prefix(bot, msg):
 
 bot = commands.Bot(command_prefix=get_prefix)
 client = discord.Client()
-ascii_banner = pyfiglet.figlet_format(botname)
+asciiBanner = pyfiglet.figlet_format(botname, justify="center")
 
 @bot.command
 async def load(ctx, extension):
@@ -62,6 +79,14 @@ async def on_raw_reaction_add(payload):
 @bot.event
 async def on_raw_reaction_remove(payload):
 	await reactionRemoved(bot, payload)
+
+@bot.event
+async def on_command(ctx):
+	print("⏳ " + Fore.YELLOW + ctx.message.author.name + Style.RESET_ALL + " invoked " + Fore.YELLOW + prefix + ctx.command.name)
+
+@bot.event
+async def on_command_completion(ctx):
+	print("✅ " + Fore.GREEN + ctx.message.author.name + Style.RESET_ALL + " invoked " + Fore.GREEN + prefix + ctx.command.name)
 
 for file in os.listdir("./cogs"):
 	if file.endswith(".py"):
@@ -100,30 +125,70 @@ async def on_command_error(ctx, error):
 
 @bot.event
 async def on_ready():
+	# Windows
+	os.system('cls')
+	# Linux
+	os.system('clear')
 
-	# Warning for users who've yet to migrate to the new database system.
+	# Stop spinner
+	spinner.stop()
+	
+	# Coloured Reto banner
+	# Kinda hardcoded, but the alternative wasn't pretty either
+	asciiLines = asciiBanner.splitlines()
+	print(Style.BRIGHT +Fore.CYAN + asciiLines[0])
+	print(Fore.CYAN + asciiLines[1])
+	print(Style.BRIGHT + Fore.BLUE + asciiLines[2])
+	print(Fore.BLUE + asciiLines[3])
+	print(Style.DIM + Fore.BLUE + asciiLines[4])
+	print(Style.DIM + Fore.BLUE + asciiLines[5])
+
+	# Get bot info for the startup dashboard
+	serverPlural = "server"
+	if len(bot.guilds) > 1:
+		serverPlural = "servers"
+	print ("🟢 " + botname + " is " + Fore.GREEN + "ONLINE" + Style.RESET_ALL + " | " + Fore.BLUE + str(bot.user)
+			+ Style.RESET_ALL + " on " + Fore.YELLOW + str(len(bot.guilds)) + Style.RESET_ALL + " " + serverPlural +
+			" | v" + Fore.CYAN + botver)
+	if debug:
+		print ('⚠️ ' + Fore.YELLOW + ' Running on Debug Mode' + Style.RESET_ALL + '. Disable it after you\'re done in json/config.json.')
+	print ("🫂  Invite link: " + Fore.BLUE + "https://discord.com/oauth2/authorize?client_id=" + str(bot.user.id) + "&permissions=1342524496&scope=bot")
+	
+	# Check for updates
+	updateSpinner = yaspin(text="Looking for updates...", color="red")
+	updateSpinner.start()
+	r = requests.get("https://api.github.com/repos/" + gusername + "/" + grepo + "/releases")
+	j=r.json()
+	if j:
+		if not "message" in j:
+			if j[0]["tag_name"] != botver:
+				updateSpinner.stop()
+				print("🛑 [v" + j[0]["tag_name"] + "] " + Fore.RED + "A new version of " + botname + " is available!\n"
+						+ Style.RESET_ALL + "   Get it at " + Fore.BLUE + "https://github.com/despedite/reto/releases")
+			else:
+				updateSpinner.text = "You're up to date!"
+				await asyncio.sleep(1)
+		else:
+			updateSpinner.text = "Something went wrong while fetching updates."
+			await asyncio.sleep(1)			
+	updateSpinner.stop()
+	print('\n' + '─' * 25 + " Get started with " + Fore.GREEN + "?setup " + Style.RESET_ALL + '─' * 25 + '\n')
+
+	# Warning for users who've yet to migrate to the new database system. (really, you guys?)
 	olddb = TinyDB("json/db.json")
 	if ((not db) and (olddb)):
-		print(pyfiglet.figlet_format("⚠️ READ THIS!"))
-		print("Hey there, " + botname + " admin!\nIf you're reading this, we've detected you've got the JSON databases from v1.5.2 and below, but have yet to populate the new ones.\nWe may have done a false positive, though. If this is your first time using " + botname + ", and you've started with v1.6 or higher, welcome aboard!\nPlease dismiss this message.\nIf not, here's the deal: v1.6 implements a new database system that's completely encrypted, to allow for more security of the data " + botname + " stores.\nHowever, this migration ISN'T DONE BY DEFAULT. If you want to use v1.6 and higher, you might want to import your databases to the new .reto filesystem!\n\nTo do so, please run 'python encrypt-databases.py' on the same folder as  " + botname + "'s.\nThis won't be destructive - your old DB previous to this update will still be around, but the new system will be used!\n\nThat's it. Thank you for using " + botname + "!\n\n")
-		print ("--------------------------------------------")
-
-	print (ascii_banner)
-	print (botname + " is ONLINE!")
-	if len(bot.guilds) == 1:
-		print ("Running with the name " + str(bot.user) + " on " + str(len(bot.guilds)) + " server")
-	else:
-		print ("Running with the name " + str(bot.user) + " on " + str(len(bot.guilds)) + " servers")
-	if debug:
-		print ('WARNING: You\'re running ' + str(botname)+ ' on Debug Mode. Remember to change the Debug variable in json/config.json to "False" later!')
-	print ("Invite link: https://discordapp.com/api/oauth2/authorize?client_id=" + str(bot.user.id) + "&permissions=1342449744&scope=bot")
-	print ("Ver " + botver + " - check the updates with ?changelog")
-	print ("?setup to get started!")
-	print ("--------------------------------------------")
+		print("""🛑 It looks like you're using the old database system from v1.5.2
+(or earlier!) If that isn't the case, dismiss this message. If you've just
+upgraded your """ + botname + """ version, you may need to encrypt your old databases
+to the new format before continuing to use """ + botname + """.
+More info here: """ + Fore.BLUE + """https://github.com/despedite/reto/wiki/Migrating-databases
+""")
+		print('─' * 75 + '\n')
 
 	#async def on_guild_post():
 	#	print("Server count posted successfully")
 
+	# Set bot's activity
 	global botactivity
 	if not botactivity:
 		botactivity = [prefix + 'setup to get started!', 'Hey, bot owner - change the default activities with ' + prefix + 'activity!']
@@ -151,11 +216,9 @@ async def statusupdates():
 		# update the activity list
 		activity.clear_cache()
 		getactivities = activity.all()
-		i = 0
 		botactivity = []
 		for value in getactivities:
-			botactivity.append(getactivities[i]["activity"])
-			i += 1
+			botactivity.append(value["activity"])
 		if not botactivity:
 			botactivity = [prefix + 'setup to get started!', 'Hey, bot owner - change the default activities with ' + prefix + 'activity!']
 		if botver != "":
