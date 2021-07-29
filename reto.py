@@ -1,5 +1,5 @@
 # Import global variables and databases.
-from definitions import bottoken, botname, botver, prefix, debug, db, srv, activity, customprefix
+from definitions import bottoken, botname, botver, prefix, debug, db, srv, activity, customprefix, gusername, grepo
 
 # Imports, database definitions and all that kerfuffle.
 
@@ -28,6 +28,13 @@ from sharedFunctions import printLeaderboard, createLeaderboardEmbed, getProfile
 
 # ----------------------------------------------------------------------------------------------
 
+# Start Colorama ANSI
+init(autoreset=True)
+
+# Loading icon
+spinner = yaspin(text="Loading " + botname + "... " + Style.DIM + "(This may take a while.)", color="blue")
+spinner.start()
+
 # Set up logging
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -36,13 +43,6 @@ if not os.path.exists('logs'):
 handler = logging.FileHandler(filename='logs/discord-' + datetime.now().strftime("%Y-%m-%d") + '.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
-
-# Start Colorama ANSI
-init(autoreset=True)
-
-# Loading icon
-spinner = yaspin(text="Loading " + botname + "... " + Style.DIM + "(This may take a while.)", color="blue")
-spinner.start()
 
 getactivities = activity.all()
 botactivity = []
@@ -135,6 +135,7 @@ async def on_ready():
 	print(Style.DIM + Fore.BLUE + asciiLines[4])
 	print(Style.DIM + Fore.BLUE + asciiLines[5])
 
+	# Get bot info for the startup dashboard
 	serverPlural = "server"
 	if len(bot.guilds) > 1:
 		serverPlural = "servers"
@@ -144,22 +145,27 @@ async def on_ready():
 	if debug:
 		print ('⚠️ ' + Fore.YELLOW + ' Running on Debug Mode' + Style.RESET_ALL + '. Disable it after you\'re done in json/config.json.')
 	print ("🫂  Invite link: " + Fore.BLUE + "https://discord.com/oauth2/authorize?client_id=" + str(bot.user.id) + "&permissions=1342524496&scope=bot")
+	
 	# Check for updates
 	updateSpinner = yaspin(text="Looking for updates...", color="red")
 	updateSpinner.start()
-	r = requests.get("https://api.github.com/repos/despedite/reto/releases")
+	r = requests.get("https://api.github.com/repos/" + gusername + "/" + grepo + "/releases")
 	j=r.json()
 	if j:
-		if j[0]["tag_name"] != botver:
-			print("🛑 [v" + j[0]["tag_name"] + "] " + Fore.RED + "A new version of " + botname + " is available!\n"
-					+ Style.RESET_ALL + "   Get it at " + Fore.BLUE + "https://github.com/despedite/reto/releases")
+		if not "message" in j:
+			if j[0]["tag_name"] != botver:
+				print("🛑 [v" + j[0]["tag_name"] + "] " + Fore.RED + "A new version of " + botname + " is available!\n"
+						+ Style.RESET_ALL + "   Get it at " + Fore.BLUE + "https://github.com/despedite/reto/releases")
+			else:
+				updateSpinner.text = "You're up to date!"
+				await asyncio.sleep(1)
 		else:
-			updateSpinner.text = "You're up to date!"
-			await asyncio.sleep(1)
+			updateSpinner.text = "Something went wrong while fetching updates."
+			await asyncio.sleep(1)			
 	updateSpinner.stop()
 	print('\n' + '─' * 25 + " Get started with " + Fore.GREEN + "?setup " + Style.RESET_ALL + '─' * 25 + '\n')
 
-	# Warning for users who've yet to migrate to the new database system.
+	# Warning for users who've yet to migrate to the new database system. (really, you guys?)
 	olddb = TinyDB("json/db.json")
 	if ((not db) and (olddb)):
 		print("""🛑 It looks like you're using the old database system from v1.5.2
@@ -173,6 +179,7 @@ More info here: """ + Fore.BLUE + """https://github.com/despedite/reto/wiki/Migr
 	#async def on_guild_post():
 	#	print("Server count posted successfully")
 
+	# Set bot's activity
 	global botactivity
 	if not botactivity:
 		botactivity = [prefix + 'setup to get started!', 'Hey, bot owner - change the default activities with ' + prefix + 'activity!']
