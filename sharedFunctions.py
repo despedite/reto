@@ -132,13 +132,13 @@ async def getProfile(author, ctx, self):
 
 	if result:
 		if leadervalue == 1:
-			leaderemblem = "🥇"
+			leaderemblem = "🥇 "
 		elif leadervalue == 2:
-			leaderemblem = "🥈"
+			leaderemblem = "🥈 "
 		elif leadervalue == 3:
-			leaderemblem = "🥉"
+			leaderemblem = "🥉 "
 		elif leadervalue <= 10:
-			leaderemblem = "🏅"
+			leaderemblem = "🏅 "
 		else:
 			leaderemblem = " "
 	else:
@@ -153,7 +153,7 @@ async def getProfile(author, ctx, self):
 		curatoremote = self.client.get_emoji(742136325628756000)
 		role = discord.utils.get(ctx.guild.roles, name="Curator")
 		if role in author.roles:
-			curatoremblem = str(curatoremote)
+			curatoremblem = str(curatoremote) + " "
 
 	#
 	# CHECK IF BOTOWNER
@@ -162,7 +162,7 @@ async def getProfile(author, ctx, self):
 	botemblem = ""
 	for x in botowner:
 		if (int(author.id) == int(x)):
-			botemblem = "👨‍💻"
+			botemblem = "👨‍💻 "
 
 	#
 	# CHECK IF ROSEBUD USED ON USER
@@ -172,7 +172,7 @@ async def getProfile(author, ctx, self):
 	if result:
 		if "modifiedkarma" in result:
 			rosebudemote = self.client.get_emoji(862441238267297834)
-			rosebudemblem = str(rosebudemote)
+			rosebudemblem = str(rosebudemote) + " "
 	
 	#
 	# POINTS SENT
@@ -201,18 +201,21 @@ async def getProfile(author, ctx, self):
 	# SEND THE EMBED
 	#
 
-	embed=discord.Embed(title=author.name + ' ' + leaderemblem + str(curatoremblem) + botemblem + rosebudemblem)
+	embed=discord.Embed(title=author.name)
 	embed.set_thumbnail(url=author.avatar_url)
+	rank = ""
+	if not isinstance(ctx.message.channel, discord.channel.DMChannel):
+		rank = "✨ Rank     `" + str(localvalue) + "`\n"
+		embed.add_field(name=ctx.message.guild.name + " Karma", value="<:karma:862440157525180488> 0", inline=True)
 	if result:
-		embed.add_field(name="Karma", value=result.get('points'), inline=True)
+		embed.add_field(name="Global Karma", value="<:karma:862440157525180488> " + str(result.get('points')), inline=True)
 	else:
-		embed.add_field(name="Karma", value='0', inline=True)
+		embed.add_field(name="Global Karma", value="<:karma:862440157525180488> 0", inline=True)
 	if result:
-		embed.add_field(name="Global Rank", value=leadervalue, inline=True)
-		if not isinstance(ctx.message.channel, discord.channel.DMChannel):
-			embed.add_field(name="Local Rank", value=localvalue, inline=True)
-		embed.add_field(name="Reacted posts", value=len(sentpoints), inline=True)
-		embed.add_field(name="Stars received", value=starsrec, inline=True)
+		plusEmoji = discord.utils.get(ctx.guild.emojis, name="plus")
+		starEmoji = discord.utils.get(ctx.guild.emojis, name="10")
+		embed.add_field(name="Badges", value=leaderemblem + curatoremblem + botemblem + rosebudemblem, inline=False)
+		embed.add_field(name="Stats", value=rank + "🌐 Global Rank  `" + leaderemblem + str(leadervalue) + "`\n" + str(plusEmoji) + " Times reacted `" + str(len(sentpoints)) + "`\n" + str(starEmoji) + " Stars received `" + str(starsrec) + "`", inline=False)
 	await ctx.send(embed=embed)
 
 async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel, args, isGlobal):
@@ -304,7 +307,6 @@ async def printLeaderboard(page, leaderboard, self, ctx, ctxMessage, ctxChannel,
 		await ctxMessage.remove_reaction(checkM, botid)
 
 async def createLeaderboardEmbed(self, values, numero, ceronumero, ctx, ctxMessage, ctxChannel, lbEmbed, page):
-	emoji = discord.utils.get(ctxMessage.guild.emojis, name="plus")
 	guild = ctxMessage.guild
 
 	username = self.client.get_user(str(values[2]))
@@ -371,7 +373,7 @@ async def createLeaderboardEmbed(self, values, numero, ceronumero, ctx, ctxMessa
 			emberino.add_field(name="Position", value="🥉 "+str(numero), inline=True)
 		else:
 			emberino.add_field(name="Position", value="✨ "+str(numero), inline=True)
-		emberino.add_field(name="Karma", value=f"{emoji} " + str(values[0]), inline=True)
+		emberino.add_field(name="Karma", value="<:karma:862440157525180488> " + str(values[0]), inline=True)
 		if (values[5] != "None"): #if theres 'stars' value in post
 			emberino.add_field(name="Stars", value=":star2: "+str(values[5]), inline=True)
 		if(len(values[3]) > 0):
