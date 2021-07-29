@@ -4,7 +4,7 @@ with open("README.md", 'r') as f:
     long_description = f.read()
 
 setup(name='Reto',
-      version='1.6',
+      version='1.6c',
       description='Vote-handling Discord bot! React on messages, give points to the best commenters, and Star stuff to put it in the Best Of channel.',
       long_description=long_description,
       url='http://github.com/despedite/reto',
@@ -16,6 +16,8 @@ setup(name='Reto',
           'pyfiglet',
           'tinydb',
           'aiofiles',
-          'tinydb-encrypted-jsonstorage'
+          'tinydb-encrypted-jsonstorage',
+          'colorama',
+          'yaspin'
       ],
       zip_safe=False)
