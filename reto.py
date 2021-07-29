@@ -80,6 +80,14 @@ async def on_raw_reaction_add(payload):
 async def on_raw_reaction_remove(payload):
 	await reactionRemoved(bot, payload)
 
+@bot.event
+async def on_command(ctx):
+	print("⏳ " + Fore.YELLOW + ctx.message.author.name + Style.RESET_ALL + " invoked " + Fore.YELLOW + prefix + ctx.command.name)
+
+@bot.event
+async def on_command_completion(ctx):
+	print("✅ " + Fore.GREEN + ctx.message.author.name + Style.RESET_ALL + " invoked " + Fore.GREEN + prefix + ctx.command.name)
+
 for file in os.listdir("./cogs"):
 	if file.endswith(".py"):
 		bot.load_extension(f'cogs.{file[:-3]}') #[:-3] removes the last 3 chars
