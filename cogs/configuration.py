@@ -431,7 +431,7 @@ class Configuration(commands.Cog):
 		`{gk}`: Total karma count (global)
 		`\\n`: Newline (pressing RETURN/ENTER)
 		"""
-		types = ["plus", "minus", "10"]
+		types = ["plus", "minus", "10", "10repeat"]
 		server = str(ctx.message.guild.id)
 		notifmode = best.get(Query().serverid == server)
 		if "notification" in notifmode:

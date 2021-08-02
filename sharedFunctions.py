@@ -643,9 +643,9 @@ async def reactionAdded(bot, payload):
 				
 				# Get the values from the types dict.!
 				if commentExists and emojiName == "10":
-					typeVariables = types["10repeat"]
-				else:
-					typeVariables = types[emojiName]
+					emojiName = "10repeat"
+				
+				typeVariables = types[emojiName]
 
 				# If the role requires Curator and the user doesn't have it, boot 'em out
 				if discord.utils.get(member.roles, name="Curator") is None and typeVariables['requiresCurator']:
