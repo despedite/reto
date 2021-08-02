@@ -19,7 +19,7 @@ from datetime import datetime, date
 import logging
 
 # sharedFunctions
-from sharedFunctions import sendErrorEmbed, getCurrentPrefix, formatMessage
+from sharedFunctions import sendErrorEmbed, getCurrentPrefix, formatMessage, createAutovoteEmbed
 
 # ----------------------------------------------------------------------------------------------
 
@@ -315,12 +315,13 @@ class Configuration(commands.Cog):
 	# -------------------------
 	#	 ENABLE AUTO-VOTES
 	# -------------------------
-				
+
 	@commands.command(aliases=['autovotes', 'autoreact', 'autoreacts', 'autoreactions'], description="Enable/disable the bot reacting to every message in a certain channel! This is useful for image channels, where you'd want to have every post already reacted to with a Heart and a Crush to encourage voting. (You can also enable this server-wide, with ?autovote server.)")
 	@commands.has_permissions(manage_guild=True)
 	async def autovote(self,ctx,*args):
 		"""Enable/disable the bot reacting to every message in a channel!"""
-
+		
+		channelId = str(ctx.message.channel.id)
 		prefix = await getCurrentPrefix(ctx)
 		if args:
 			if args[0] == "server":
@@ -338,48 +339,77 @@ class Configuration(commands.Cog):
 						chan.update({'serverwide': True}, where('server') == ctx.message.guild.id)
 		else:
 			# Check if the channel exists.
-			possibleConfigs = {
-				"text": {
+			possibleConfigs = [
+				{
 					"emoji": "📜",
 					"name": "Text",
-					"description": "Regular, text-only messages."
+					"description": "Regular, text-only messages.",
+					"database": "text"
 				},
-				"images": {
+				{
 					"emoji": "🖼️",
 					"name": "Images",
-					"description": "Image and video files attached."
+					"description": "Image and video files attached.",
+					"database": "images"
 				},
-				"files": {
+				{
 					"emoji": "🗄️",
 					"name": "Files",
-					"description": "Attachments - .txt, .zip, etcetera."
+					"description": "Attachments - .txt, .zip, etcetera.",
+					"database": "files"
 				},
-				"embeds": {
+				{
 					"emoji": "📎",
 					"name": "Embeds",
-					"description": "Links, formatted bot messages..."
-				},
-				"global": {
-					"emoji": "🌐",
-					"name": "Global",
-					"description": "Save these settings for every channel on the entire server."
-				},
-				
-			}
-			embed=discord.Embed(title="Autovote settings", description="Get Reto to react to new posts on this channel.")
-			for config in possibleConfigs.items():
-				embed.add_field(name=config["emoji"] + " " + config["name"], value="**[❌]** " + config["description"], inline=False)
-			sentEmbed = await ctx.send(embed=embed)
+					"description": "Links, formatted bot messages...",
+					"database": "embeds"
+				}
+			]
+
+			channelConfig = chan.get(Query()['server'] == ctx.message.guild.id)
+			autovoteEmbed = await createAutovoteEmbed(channelId, possibleConfigs, channelConfig)
+			sentEmbed = await ctx.send(embed=autovoteEmbed)
 			
 			emojiArray = []
-			for config in possibleConfigs.items():
+			for config in possibleConfigs:
 				emojiArray.append(config["emoji"])
 				await sentEmbed.add_reaction(emoji=config["emoji"])
 			
 			def check(reaction, user):
-				return user == ctx.message.author and str(reaction.emoji) in emojiArray
+				return user == ctx.message.author and str(reaction.emoji) in emojiArray and reaction.message.channel == ctx.message.channel
+			
+			try:
+				reaction, user = await self.client.wait_for('reaction_add', timeout=60.0, check=check)
+			except asyncio.TimeoutError:
+				await sentEmbed.clear_reactions()
+			else:
+				while True:
+					try:
+						for config in possibleConfigs:
+							if config["emoji"] == reaction.emoji:
+								if (channelConfig and channelId + "-" + config["database"] in channelConfig and channelConfig[channelId + "-" + config["database"]] == True):
+									chan.update({channelId + "-" + config["database"]: False}, where('server') == ctx.message.guild.id)
+								else:
+									exists = chan.count(Query().server == ctx.message.guild.id)
+									# If the channel doesn't exist.
+									if (exists == 0):
+										chan.insert({'server': ctx.message.guild.id})
+									chan.update({channelId + "-" + config["database"]: True}, where('server') == ctx.message.guild.id)
+						
+						# Update the old embed
+						channelConfig = chan.get(Query()['server'] == ctx.message.guild.id)
+						print(channelConfig)
+						autovoteEmbed = await createAutovoteEmbed(channelId, possibleConfigs, channelConfig)
+						await sentEmbed.edit(embed=autovoteEmbed)
 
-			reaction, user = await self.client.wait_for('reaction_add', timeout=60.0, check=check)
+						# Remove emoji
+						await reaction.remove(ctx.message.author)
+
+						reaction, user = await self.client.wait_for('reaction_add', timeout=60.0, check=check)
+					except asyncio.TimeoutError:
+						await sentEmbed.clear_reactions()
+						break
+						
 
 
 			"""

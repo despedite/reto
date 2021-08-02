@@ -20,6 +20,17 @@ import ast
 
 # ----------------------------------------------------------------------------------------------
 
+async def createAutovoteEmbed(channelId, possibleConfigs, channelConfig):
+	embed = discord.Embed(title="Autovote settings", description="Get Reto to react to new posts on this channel.")
+	for config in possibleConfigs:
+		# Search if enabled or not
+		enabled = "**[❌]**"
+		if (channelConfig and channelId + "-" + config["database"] in channelConfig and channelConfig[channelId + "-" + config["database"]] == True):
+			enabled = "**[✔️]**"
+		embed.add_field(name=config["emoji"] + " " + config["name"], value=enabled + " " + config["description"], inline=False)
+	embed.set_footer(text="The reactions below will dissapear after a minute of inactivity.")
+	return embed
+
 async def getCurrentPrefix(ctx):
 	customprefix.clear_cache()
 	if not ctx.message.guild: # is on DMs
