@@ -106,6 +106,9 @@ class Miscellaneous(commands.Cog):
 					emojiSwitch = "\\❌"
 					textSwitch = "(Disabled - Curators can enable it with " + prefix + "privacy server on)"
 				embed.add_field(name=emojiSwitch + " Server Logging", value="Setting this as disabled means the server won't show up on Global Post Leaderboards, perfect for private or confidential conversations. " + textSwitch, inline=False)
+			embed.add_field(name="\\📁 Export your user data", value="Want to get a look of what data Reto knows about you? Want to export your previous user data to a new instance of the bot? Export your personal data with " + prefix + "privacy data export!", inline=True)
+			await ctx.send(embed=embed)
+
 			embed.add_field(name="\\💣 Destroy your user data", value="Ready to leave Reto, and want to leave your previous conversations, points and the like behind? Do note that this action is destructive, and will only affect you and not that of the server at large. If so, use " + prefix + "privacy data delete.", inline=True)
 			await ctx.send(embed=embed)
 		elif args[0] == "mode":
