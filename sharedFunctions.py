@@ -62,13 +62,15 @@ async def formatMessage(string, message):
 		p = "10"
 	else:
 		p = "1"
-	# Total karma
+	# Total karma (local)
 	uid = str(message.author.id)
 	query = db.get(Query()['username'] == uid)
-	k = str(query.get('points'))
+	k = str(query.get(str(message.guild.id)))
+	# Total karma (global)
+	gk = str(query.get('points'))
 
 	# PARSING
-	return string.replace('{u}', u).replace('{um}', um).replace('{c}', c).replace('{cm}', cm).replace('{b}', b).replace('{bm}', bm).replace('{m}', m).replace('{s}', s).replace('{p}', p).replace('{k}', k).replace('\\n', '\n')
+	return string.replace('{u}', u).replace('{um}', um).replace('{c}', c).replace('{cm}', cm).replace('{b}', b).replace('{bm}', bm).replace('{m}', m).replace('{s}', s).replace('{p}', p).replace('{k}', k).replace('{gk}', gk).replace('\\n', '\n')
 
 async def getFormattedMessage(message, msgtype):
 	serverid = str(message.guild.id)
@@ -212,7 +214,10 @@ async def getProfile(author, ctx, self):
 	rank = ""
 	if not isinstance(ctx.message.channel, discord.channel.DMChannel):
 		rank = "✨ Rank     `" + str(localvalue) + "`\n"
-		embed.add_field(name=ctx.message.guild.name + " Karma", value="<:karma:862440157525180488> 0", inline=True)
+		if result.get(server):
+			embed.add_field(name=ctx.message.guild.name + " Karma", value="<:karma:862440157525180488> " + str(result.get(server)), inline=True)
+		else:
+			embed.add_field(name=ctx.message.guild.name + " Karma", value="<:karma:862440157525180488> 0", inline=True)
 	if result:
 		embed.add_field(name="Global Karma", value="<:karma:862440157525180488> " + str(result.get('points')), inline=True)
 	else:
@@ -636,7 +641,7 @@ async def reactionAdded(bot, payload):
 				# Check if the user is on the database.
 				userExists = db.count(Query().username == str(authorId)) # NOTE: Stored as strings.
 				if not userExists:
-					db.insert({'username': str(authorId), 'points': typeVariables['points'], 'servers': [serverId]})
+					db.insert({'username': str(authorId), 'points': typeVariables['points'], 'servers': [serverId], str(serverId): typeVariables['points']})
 				else:
 					# Add points to user.
 					db.update(add('points', typeVariables['points']), where('username') == str(authorId))
@@ -645,6 +650,15 @@ async def reactionAdded(bot, payload):
 					serverExists = db.count((User.servers.any([serverId])) & (User.username == str(authorId)))
 					if not serverExists:
 						db.update(add('servers',[serverId]), where('username') == str(authorId))
+					
+					# Check if the user has server karma.
+					userData = db.get(User.username == str(authorId))
+					if str(serverId) in userData:
+						db.update(add(str(serverId), typeVariables['points']), where('username') == str(authorId))
+					else:
+						db.upsert({str(serverId): typeVariables['points']}, where('username') == str(authorId))
+					# Debug
+					userData = db.get(User.username == str(authorId))
 
 				# --- SEND TO THE BEST OF ---
 
@@ -741,6 +755,8 @@ async def reactionRemoved(bot, payload):
 	# no such thing as "get_message"
 	message = await channel.fetch_message(payload.message_id)
 
+	server = str(message.guild.id)
+	
 	if ((userid != message.author.id) or (debug == True)) and not user.bot:
 		if not isinstance(payload.emoji, str):
 
@@ -763,13 +779,14 @@ async def reactionRemoved(bot, payload):
 				value = message.author.id
 				exists = db.count(Query().username == str(value))
 				if not (exists == 0):
-					db.update(subtract('points',removable), where('username') == str(value))
+					db.update(subtract('points', removable), where('username') == str(value))
+					db.update(subtract(server, removable), where('username') == str(value))
 				# Remove the comment's karma.
 				valuetwo = str(message.id)
 				postexists = post.count(Query().msgid == str(valuetwo))
 				if not (postexists == 0):
 					post.update(subtract('points',removable), where('msgid') == str(valuetwo))
-					#post.update(subtract('voters',[user.id]), where('msgid') == str(valuetwo))
+					post.update(subtract('voters',[user.id]), where('msgid') == str(valuetwo))
 					if payload.emoji.name == '10':
 						post.update(subtract('stars',1), where('msgid') == str(valuetwo))
 						# Get stars from post
@@ -780,7 +797,6 @@ async def reactionRemoved(bot, payload):
 				
 				# we shouldn't send a message if someone un-reacted, that'd be mean.
 				# instead, we send a reaction unless notifications are disabled
-				server = str(message.guild.id)
 				checkM = bot.get_emoji(660217963911184384)
 				notifmode = best.get(Query().serverid == server)
 				if "notification" in notifmode:

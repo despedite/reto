@@ -410,25 +410,26 @@ class Configuration(commands.Cog):
 	async def notificationmessages(self, ctx, *args):
 		"""Create your own custom notification messages."""
 		errormessage = """
-		\n\n**Argument 1:** Message type
-		\n`[plus/minus/10/10repeat/default]`
-		\n`10repeat` represents the message that appears when a message is starred multiple times.
-		\n`default` will reset all of your set messages!
-		\n\n**Argument 2:** Message
-		\n`"string"`
-		\n(Inbetween quotes.)
-		\n\n**Message modifiers** (usable in Argument 2)
-		\n`{u}`: Username
-		\n`{um}`: Username (mentions/pings the user)
-		\n`{c}`: Channel name
-		\n`{cm}`: Channel name (links to the channel)
-		\n`{b}`: Best Of name
-		\n`{bm}`: Best Of name (links to the channel)
-		\n`{m}`: Message
-		\n`{s}`: Server name
-		\n`{p}`: Points added or subtracted
-		\n`{k}`: Total karma count
-		\n`\\n`: Newline (pressing RETURN/ENTER)
+		\n**Argument 1:** Message type
+		`[plus/minus/10/10repeat/default]`
+		`10repeat` represents the message that appears when a message is starred multiple times.
+		`default` will reset all of your set messages!
+		\n**Argument 2:** Message
+		`"string"`
+		(Inbetween quotes.)
+		\n**Message modifiers** (usable in Argument 2)
+		`{u}`: Username
+		`{um}`: Username (mentions/pings the user)
+		`{c}`: Channel name
+		`{cm}`: Channel name (links to the channel)
+		`{b}`: Best Of name
+		`{bm}`: Best Of name (links to the channel)
+		`{m}`: Message
+		`{s}`: Server name
+		`{p}`: Points added or subtracted
+		`{k}`: Total karma count (local)
+		`{gk}`: Total karma count (global)
+		`\\n`: Newline (pressing RETURN/ENTER)
 		"""
 		types = ["plus", "minus", "10"]
 		server = str(ctx.message.guild.id)
