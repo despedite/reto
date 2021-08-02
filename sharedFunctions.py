@@ -603,24 +603,34 @@ async def reactionAdded(bot, payload):
 		"plus": {
 			"mode": "add",
 			"points": 1,
-			"operator": "+",
 			"message": "Hearted! **{u}** now has <:karma:862440157525180488> {k} Karma. (+{p})",
 			"bestOf": False,
-			"requiresCurator": False
+			"requiresCurator": False,
+			"starsAdded": 0
 		},
 		"minus": {
 			"mode": "subtract",
 			"points": -1,
 			"message": "Crushed. **{u}** now has <:karma:862440157525180488> {k} Karma. (+{p})",
 			"bestOf": False,
-			"requiresCurator": False
+			"requiresCurator": False,
+			"starsAdded": 0
 		},
 		"10": {
 			"mode": "add",
 			"points": 10,
 			"message": "Congrats, **{u}**! Your post will be forever immortalized in the **{bm}** channel. You now have <:karma:862440157525180488> {k} Karma. (+{p})",
 			"bestOf": True,
-			"requiresCurator": False
+			"requiresCurator": True,
+			"starsAdded": 1
+		},
+		"10repeat": {
+			"mode": "add",
+			"points": 10,
+			"message": "Congrats, **{u}**! Your post was so good it was Hearted more than once. You now have <:karma:862440157525180488> {k} Karma. (+{p})",
+			"bestOf": False,
+			"requiresCurator": True,
+			"starsAdded": 1
 		}
 	}
 
@@ -628,13 +638,19 @@ async def reactionAdded(bot, payload):
 		if not isinstance(payload.emoji, str):
 			if any(item.lower() == emojiName for item in types.keys()):
 
-				# If the role requires Curator and the user doesn't have it, boot 'em out
-				if discord.utils.get(member.roles, name="Curator") is None and types['requiresCurator']:
-					await message.remove_reaction(payload.emoji, user)
-					return
+				# Is the comment already available on the database?
+				commentExists = post.count(Query().msgid == str(messageId))
 				
 				# Get the values from the types dict.!
-				typeVariables = types[emojiName]
+				if commentExists and emojiName == "10":
+					typeVariables = types["10repeat"]
+				else:
+					typeVariables = types[emojiName]
+
+				# If the role requires Curator and the user doesn't have it, boot 'em out
+				if discord.utils.get(member.roles, name="Curator") is None and typeVariables['requiresCurator']:
+					await message.remove_reaction(payload.emoji, user)
+					return
 
 				# --- ADDING POINTS ---
 
@@ -657,13 +673,9 @@ async def reactionAdded(bot, payload):
 						db.update(add(str(serverId), typeVariables['points']), where('username') == str(authorId))
 					else:
 						db.upsert({str(serverId): typeVariables['points']}, where('username') == str(authorId))
-					# Debug
-					userData = db.get(User.username == str(authorId))
 
 				# --- SEND TO THE BEST OF ---
-
-				# Is the comment already available on the database?
-				commentExists = post.count(Query().msgid == str(messageId))
+				
 				# Dummy variable (for comment database later down the line)
 				bestOfSentEmbed = False
 				if typeVariables['bestOf']:
@@ -705,13 +717,14 @@ async def reactionAdded(bot, payload):
 								i = i + 1
 						# If the post was sent to Best Of, track that ID
 						if bestOfSentEmbed:
-							bestOfId = str(bestOfSentEmbed.id)
+							bestOfId = bestOfSentEmbed.id
 						# And insert all that into the Comment DB!
-						post.insert({'msgid': str(messageId), 'username': str(authorId), 'points': typeVariables['points'], 'servers': str(serverId), 'content': message.content, 'embed': attachments, 'richembed': richEmbeds, 'voters': [userId], 'stars': 0, 'nsfw': isNsfw, 'timestamp': timestamp, 'bestofid': bestOfId})
+						post.insert({'msgid': str(messageId), 'username': str(authorId), 'points': typeVariables['points'], 'servers': str(serverId), 'content': message.content, 'embed': attachments, 'richembed': richEmbeds, 'voters': [userId], 'stars': typeVariables['starsAdded'], 'nsfw': isNsfw, 'timestamp': timestamp, 'bestofid': bestOfId})
 				else:
 					# If the comment does exist, let's just add points onto it.
 					post.update(add('points', typeVariables['points']), where('msgid') == str(messageId))
 					post.update(add('voters', [userId]), where('msgid') == str(messageId))
+					post.update(add('stars', typeVariables['starsAdded']), where('msgid') == str(messageId))
 
 				# --- POST A CONFIRMATION MESSAGE ---
 
@@ -760,8 +773,10 @@ async def reactionRemoved(bot, payload):
 	if ((userid != message.author.id) or (debug == True)) and not user.bot:
 		if not isinstance(payload.emoji, str):
 
-			channel = message.channel
-			
+			channel       = message.channel
+			bestOfId      = best.get(Query().serverid == server)
+			bestOfChannel = await bot.fetch_channel(bestOfId["channelid"])
+
 			removable = None
 			if payload.emoji.name == '10':
 				# the bot auto-removes stars given out by non-curators.
@@ -786,13 +801,13 @@ async def reactionRemoved(bot, payload):
 				postexists = post.count(Query().msgid == str(valuetwo))
 				if not (postexists == 0):
 					post.update(subtract('points',removable), where('msgid') == str(valuetwo))
-					post.update(subtract('voters',[user.id]), where('msgid') == str(valuetwo))
+					#post.update(subtract('voters',[user.id]), where('msgid') == str(valuetwo))
 					if payload.emoji.name == '10':
 						post.update(subtract('stars',1), where('msgid') == str(valuetwo))
 						# Get stars from post
 						finalPost = post.get(where('msgid') == str(valuetwo))
 						if "bestofid" in finalPost and finalPost["stars"] <= 0:
-							bestOfMessage = await channel.fetch_message(int(finalPost["bestofid"]))
+							bestOfMessage = await bestOfChannel.fetch_message(finalPost["bestofid"])
 							await bestOfMessage.delete()
 				
 				# we shouldn't send a message if someone un-reacted, that'd be mean.

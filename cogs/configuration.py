@@ -452,8 +452,6 @@ class Configuration(commands.Cog):
 					await sendErrorEmbed(ctx, "The message should be inbetween quotes!" + errormessage)
 				else:
 					messageType = args[0]
-					if args[0] == "10repeat":
-						messageType = "10"
 					best.upsert({'serverid': server, messageType + "Message": args[1]}, Query().serverid == server)
 					parsed = await formatMessage(args[1], ctx.message)
 					await ctx.send("**You got it!** The new message for the `" + args[0] + "` trigger is " + parsed)
