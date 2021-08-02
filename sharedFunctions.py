@@ -212,7 +212,7 @@ async def getProfile(author, ctx, self):
 	embed=discord.Embed(title=author.name, color=discord.Colour.from_rgb(dominantColor[0], dominantColor[1], dominantColor[2]))
 	embed.set_thumbnail(url=author.avatar_url)
 	rank = ""
-	if not isinstance(ctx.message.channel, discord.channel.DMChannel):
+	if not isinstance(ctx.message.channel, discord.channel.DMChannel) and result:
 		rank = "✨ Rank     `" + str(localvalue) + "`\n"
 		if result.get(server):
 			embed.add_field(name=ctx.message.guild.name + " Karma", value="<:karma:862440157525180488> " + str(result.get(server)), inline=True)
