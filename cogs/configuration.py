@@ -338,6 +338,51 @@ class Configuration(commands.Cog):
 						chan.update({'serverwide': True}, where('server') == ctx.message.guild.id)
 		else:
 			# Check if the channel exists.
+			possibleConfigs = {
+				"text": {
+					"emoji": "📜",
+					"name": "Text",
+					"description": "Regular, text-only messages."
+				},
+				"images": {
+					"emoji": "🖼️",
+					"name": "Images",
+					"description": "Image and video files attached."
+				},
+				"files": {
+					"emoji": "🗄️",
+					"name": "Files",
+					"description": "Attachments - .txt, .zip, etcetera."
+				},
+				"embeds": {
+					"emoji": "📎",
+					"name": "Embeds",
+					"description": "Links, formatted bot messages..."
+				},
+				"global": {
+					"emoji": "🌐",
+					"name": "Global",
+					"description": "Save these settings for every channel on the entire server."
+				},
+				
+			}
+			embed=discord.Embed(title="Autovote settings", description="Get Reto to react to new posts on this channel.")
+			for config in possibleConfigs.items():
+				embed.add_field(name=config["emoji"] + " " + config["name"], value="**[❌]** " + config["description"], inline=False)
+			sentEmbed = await ctx.send(embed=embed)
+			
+			emojiArray = []
+			for config in possibleConfigs.items():
+				emojiArray.append(config["emoji"])
+				await sentEmbed.add_reaction(emoji=config["emoji"])
+			
+			def check(reaction, user):
+				return user == ctx.message.author and str(reaction.emoji) in emojiArray
+
+			reaction, user = await self.client.wait_for('reaction_add', timeout=60.0, check=check)
+
+
+			"""
 			result = chan.get(Query()['server'] == ctx.message.guild.id)
 			if (result and ctx.message.channel.id in result['channels']):
 				await ctx.send("The Autovote feature has been disabled on **#" + ctx.message.channel.name + "** successfully.\nTo re-enable this feature, use " + prefix + "autovote on this channel again.")
@@ -352,6 +397,7 @@ class Configuration(commands.Cog):
 				if (exists == 0):
 					chan.insert({'server': ctx.message.guild.id, 'channels': [], 'serverwide': False})
 				chan.update(add('channels',[ctx.message.channel.id]), where('server') == ctx.message.guild.id)
+				"""
 
 	# -------------------------
 	#	CHANGE NOTIFICATIONS
